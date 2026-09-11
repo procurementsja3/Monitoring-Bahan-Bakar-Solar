@@ -1,0 +1,1902 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring Bahan Bakar Solar</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-[150] flex flex-col gap-2"></div>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="fixed inset-0 bg-black/60 hidden z-[100] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden fade-in">
+            <div class="bg-slate-800 p-4 text-white flex justify-between items-center">
+                <h3 class="font-bold text-lg"><i class="fas fa-lock mr-2"></i>Login Sistem</h3>
+                <button onclick="toggleLoginModal()" class="text-slate-300 hover:text-white transition"><i class="fas fa-times"></i></button>
+            </div>
+            <form onsubmit="handleLogin(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Username</label>
+                    <input type="text" id="login-username" required class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none transition" placeholder="Masukkan username">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                    <input type="password" id="login-password" required class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-slate-500 focus:border-slate-500 outline-none transition" placeholder="••••••••">
+                </div>
+                <button type="submit" class="w-full bg-slate-700 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg transition-colors mt-4">
+                    Masuk
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="fixed inset-0 bg-black/60 hidden z-[100] flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg my-8 fade-in">
+            <div class="bg-blue-600 p-4 text-white flex justify-between items-center rounded-t-xl">
+                <h3 class="font-bold text-lg"><i class="fas fa-edit mr-2"></i>Edit Data Transaksi</h3>
+                <button onclick="closeEditModal()" class="text-blue-200 hover:text-white transition"><i class="fas fa-times"></i></button>
+            </div>
+            <form onsubmit="handleEditSubmit(event)" class="p-6 space-y-4">
+                <input type="hidden" id="edit-id">
+                <input type="hidden" id="edit-type">
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
+                    <input type="date" id="edit-date" required class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Lokasi SJA</label>
+                    <select id="edit-lokasi" required class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="SJA SEPANJANG">SJA SEPANJANG</option>
+                        <option value="SJA SEMARANG">SJA SEMARANG</option>
+                        <option value="SJA SUKODONO">SJA SUKODONO</option>
+                        <option value="SJA KARAWANG">SJA KARAWANG</option>
+                    </select>
+                </div>
+                
+                <div id="edit-supplier-container" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Nama Supplier</label>
+                        <input type="text" id="edit-supplier" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">No. PO</label>
+                            <input type="text" id="edit-po" class="w-full border border-slate-300 rounded-lg p-2.5 uppercase focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Qty PO</label>
+                            <input type="number" id="edit-po-qty" min="0" step="any" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="edit-outbound-container" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Nama Operator</label>
+                        <input type="text" id="edit-operator" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none uppercase">
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Unit Alat</label>
+                            <select id="edit-unit" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                <option value="PROBAT">PROBAT</option>
+                                <option value="TRUK SPENTGROUND ( W 9273 NB )">TRUK SPENTGROUND ( W 9273 NB )</option>
+                                <option value="TRUK SPENTGROUND ( W 9274 NB )">TRUK SPENTGROUND ( W 9274 NB )</option>
+                                <option value="TRUK SPENTGROUND ( W 8557 PS )">TRUK SPENTGROUND ( W 8557 PS )</option>
+                                <option value="DIESEL ENGINE">DIESEL ENGINE</option>
+                                <option value="FORKLIFT 1 GBB ( 4 TON )">FORKLIFT 1 GBB ( 4 TON )</option>
+                                <option value="FORKLIFT 2 GBB ( 5,5 TON )">FORKLIFT 2 GBB ( 5,5 TON )</option>
+                                <option value="FORKLIFT 3 GBB ( 4 TON )">FORKLIFT 3 GBB ( 4 TON )</option>
+                                <option value="FORKLIFT UTILITY">FORKLIFT UTILITY</option>
+                                <option value="LOADER CATERPILLAR 2">LOADER CATERPILLAR 2</option>
+                                <option value="LOADER BOBCAT">LOADER BOBCAT</option>
+                            </select>
+                        </div>
+                        <div class="w-1/3">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Shift</label>
+                            <select id="edit-shift" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                <option value="SHIFT 1">SHIFT 1</option>
+                                <option value="SHIFT 2">SHIFT 2</option>
+                                <option value="SHIFT 3">SHIFT 3</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Link Foto Struk</label>
+                        <input type="text" id="edit-foto" placeholder="https://..." class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+
+                <div id="edit-qty-container">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Qty Transaksi (Liter)</label>
+                    <input type="number" id="edit-qty" required min="0" step="any" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                
+                <div id="edit-notes-container">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Keterangan</label>
+                    <textarea id="edit-notes" rows="2" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeEditModal()" class="px-5 py-2.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition font-medium">Batal</button>
+                    <button type="submit" class="px-5 py-2.5 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition font-medium">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirm Delete Modal -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black/60 hidden z-[110] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center fade-in">
+            <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-exclamation-triangle text-2xl"></i>
+            </div>
+            <h3 class="font-bold text-xl text-slate-800 mb-2">Hapus Data?</h3>
+            <p class="text-slate-600 mb-6 text-sm">Data transaksi yang dihapus tidak dapat dikembalikan. Ini akan mempengaruhi kalkulasi saldo BBM Anda.</p>
+            <div class="flex justify-center gap-3">
+                <button onclick="closeConfirmModal()" class="px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition font-medium flex-1">Batal</button>
+                <button onclick="executeDelete()" class="px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg transition font-medium flex-1">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Reset Modal -->
+    <div id="reset-confirm-modal" class="fixed inset-0 bg-black/60 hidden z-[110] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center fade-in">
+            <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-trash-alt text-2xl"></i>
+            </div>
+            <h3 class="font-bold text-xl text-slate-800 mb-2">Reset Semua Data?</h3>
+            <p class="text-slate-600 mb-6 text-sm">Peringatan: Seluruh data akan <b>dihapus secara permanen</b>. Pastikan Anda sudah melakukan Backup Data sebelum melanjutkan.</p>
+            <div class="flex justify-center gap-3">
+                <button onclick="closeResetConfirmModal()" class="px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition font-medium flex-1">Batal</button>
+                <button onclick="executeResetAll()" class="px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg transition font-medium flex-1">Ya, Reset Semua</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info/Error Modal for Google Sheets Sync Guidance -->
+    <div id="info-modal" class="fixed inset-0 bg-black/60 hidden z-[120] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 fade-in">
+            <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4" id="info-modal-icon-container">
+                <i class="fas fa-info-circle text-2xl" id="info-modal-icon"></i>
+            </div>
+            <h3 class="font-bold text-xl text-slate-800 mb-2 text-center" id="info-modal-title">Informasi</h3>
+            <div class="text-slate-600 mb-6 text-sm text-left leading-relaxed space-y-2" id="info-modal-message">
+                <!-- Dynamic Content -->
+            </div>
+            <div class="flex justify-center">
+                <button onclick="closeInfoModal()" class="px-6 py-2.5 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition font-medium w-full">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sync Option Modal -->
+    <div id="sync-modal" class="fixed inset-0 bg-black/60 hidden z-[130] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 text-center fade-in">
+            <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-sync text-2xl"></i>
+            </div>
+            <h3 class="font-bold text-xl text-slate-800 mb-2">Sinkronisasi Google Sheets</h3>
+            <p class="text-slate-600 mb-6 text-sm">Data pengeluaran akan ditarik ulang dari Google Sheets.<br>Sistem otomatis melakukan <b>Timpa Data (Replace All)</b> untuk memastikan keakuratan saldo perhitungan.</p>
+            <div class="flex flex-col gap-3">
+                <button onclick="executeSync()" class="px-4 py-3 text-white bg-red-600 hover:bg-red-700 rounded-lg transition font-medium w-full flex items-center justify-center gap-2">
+                    <i class="fas fa-exclamation-triangle"></i> Mulai Sinkronisasi (Timpa Data)
+                </button>
+                <button onclick="closeSyncModal()" class="px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition font-medium w-full mt-2">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar Navigation -->
+        <aside class="w-64 bg-slate-800 text-white flex flex-col hidden md:flex shrink-0">
+            <div class="p-6 flex items-center gap-3 border-b border-slate-700">
+                <i class="fas fa-oil-can text-2xl text-blue-400"></i>
+                <div>
+                    <h1 class="text-lg font-bold tracking-wide leading-tight">Monitoring Bahan Bakar Solar</h1>
+                    <div id="cloud-status" class="text-xs mt-1 text-slate-400 flex items-center gap-1"><i class="fas fa-spinner fa-spin"></i> Menghubungkan...</div>
+                </div>
+            </div>
+            <div class="px-4 pt-4 pb-2" id="user-info-display">
+                <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Status Akses:</p>
+                <p class="text-sm font-medium text-white" id="current-user-role">Tamu (Read-Only)</p>
+            </div>
+            <nav class="flex-1 px-4 py-4 space-y-2">
+                <button onclick="navigate('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-900 border-l-4 border-blue-500 transition-colors font-semibold">
+                    <i class="fas fa-chart-pie w-5 text-blue-400"></i> Dashboard
+                </button>
+                <button onclick="navigate('po')" id="nav-po" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-700 transition-colors">
+                    <i class="fas fa-file-invoice w-5 text-indigo-400"></i> Input PO Proc.
+                </button>
+                <button onclick="navigate('inbound')" id="nav-inbound" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-700 transition-colors">
+                    <i class="fas fa-truck w-5 text-white"></i> Kedatangan
+                </button>
+                <button onclick="navigate('outbound')" id="nav-outbound" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-700 transition-colors">
+                    <i class="fas fa-gas-pump w-5 text-red-400"></i> Pengeluaran
+                </button>
+            </nav>
+            <div class="p-4 border-t border-slate-700 mt-auto">
+                <button onclick="toggleLoginModal()" id="sidebar-login-btn" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-900/50 hover:bg-slate-900 border border-slate-700 rounded-lg transition-colors text-sm font-medium">
+                    <i class="fas fa-lock"></i> Login Sistem
+                </button>
+                <button onclick="logoutUser()" id="sidebar-logout-btn" class="w-full flex items-center justify-center gap-2 px-2 py-2 bg-red-600/80 hover:bg-red-600 rounded-lg transition-colors text-sm font-medium hidden whitespace-nowrap overflow-hidden">
+                    <i class="fas fa-unlock shrink-0"></i> 
+                    <span class="truncate">Logout (<span id="logout-username"></span>)</span>
+                </button>
+            </div>
+        </aside>
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+            <header class="md:hidden bg-slate-800 text-white p-4 flex justify-between items-center shadow-md shrink-0">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-oil-can text-xl text-blue-400"></i>
+                    <h1 class="font-bold text-sm sm:text-base truncate">Monitoring Bahan Bakar Solar</h1>
+                    <i id="mobile-cloud-status" class="fas fa-spinner fa-spin text-slate-400 text-xs ml-1"></i>
+                </div>
+                <div class="flex gap-1 overflow-x-auto font-sans">
+                    <button onclick="navigate('dashboard')" class="p-2"><i class="fas fa-chart-pie text-blue-400"></i></button>
+                    <button onclick="navigate('po')" class="p-2"><i class="fas fa-file-invoice text-indigo-400"></i></button>
+                    <button onclick="navigate('inbound')" class="p-2"><i class="fas fa-truck text-white"></i></button>
+                    <button onclick="navigate('outbound')" class="p-2"><i class="fas fa-gas-pump text-red-400"></i></button>
+                    <button onclick="toggleLoginModal()" id="mobile-login-btn" class="p-2 ml-1 border-l border-slate-700 pl-2"><i class="fas fa-lock text-slate-400"></i></button>
+                    <button onclick="logoutUser()" id="mobile-logout-btn" class="p-2 ml-1 border-l border-slate-700 pl-2 text-red-400 hidden"><i class="fas fa-unlock"></i></button>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50">
+                
+                <!-- VIEW: DASHBOARD -->
+                <div id="view-dashboard" class="fade-in block">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                            <h2 class="text-2xl font-bold text-slate-800">Dashboard Saldo Solar</h2>
+                            <select id="dashboard-filter-lokasi" onchange="updateUI()" class="border-2 border-slate-300 text-slate-700 font-bold rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white shadow-sm cursor-pointer">
+                                <option value="ALL" selected>Semua Lokasi</option>
+                                <option value="SJA SEPANJANG">SJA SEPANJANG</option>
+                                <option value="SJA SEMARANG">SJA SEMARANG</option>
+                                <option value="SJA SUKODONO">SJA SUKODONO</option>
+                                <option value="SJA KARAWANG">SJA KARAWANG</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="confirmResetAll()" id="btn-reset-data" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 hidden admin-only-btn">
+                                <i class="fas fa-trash-alt"></i> Reset Data
+                            </button>
+                            <button onclick="backupData()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 hidden admin-only-btn">
+                                <i class="fas fa-download"></i> Backup data
+                            </button>
+                            <button onclick="document.getElementById('restore-file').click()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 hidden admin-only-btn">
+                                <i class="fas fa-upload"></i> Restore data
+                            </button>
+                            <input type="file" id="restore-file" accept=".json" class="hidden" onchange="restoreData(event)">
+                        </div>
+                    </div>
+                    
+                    <!-- SUMMARY CARDS -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-500 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-slate-500 font-medium mb-1">Total Datang (Liter)</p>
+                                <p class="text-3xl font-bold text-slate-800" id="total-in">0</p>
+                            </div>
+                            <div class="p-3 bg-blue-50 text-blue-600 rounded-full"><i class="fas fa-truck-droplet text-xl"></i></div>
+                        </div>
+                        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-red-500 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-slate-500 font-medium mb-1">Total Keluar (Liter)</p>
+                                <p class="text-3xl font-bold text-slate-800" id="total-out">0</p>
+                            </div>
+                            <div class="p-3 bg-red-50 text-red-600 rounded-full"><i class="fas fa-gas-pump text-xl"></i></div>
+                        </div>
+                        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-emerald-500 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-slate-500 font-medium mb-1">Sisa Saldo Aktual</p>
+                                <p class="text-3xl font-bold text-slate-800" id="total-balance">0</p>
+                            </div>
+                            <div class="p-3 bg-emerald-50 text-emerald-600 rounded-full"><i class="fas fa-oil-can text-xl"></i></div>
+                        </div>
+                    </div>
+
+                    <!-- CHARTS -->
+                    <div id="pareto-chart-container" class="bg-white rounded-xl shadow-sm overflow-hidden mb-8 p-6 block">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 border-b pb-2 gap-3">
+                            <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                                <i class="fas fa-chart-line text-blue-600"></i>
+                                <select id="chart-type-selector" onchange="renderActiveChart()" class="border-none bg-transparent font-bold text-lg text-slate-800 focus:ring-0 cursor-pointer outline-none w-full max-w-[300px] truncate sm:max-w-md">
+                                    <option value="pergerakan">Grafik Pergerakan Solar (In & Out)</option>
+                                    <option value="bulanan">Grafik Pengeluaran Bulanan</option>
+                                    <option value="pareto_device">Grafik Pareto Penggunaan Device (Top 5)</option>
+                                </select>
+                            </h3>
+                            <div class="flex gap-2">
+                                <select id="chart-month-filter" onchange="renderActiveChart()" class="text-sm border border-slate-300 rounded px-2 py-1 outline-none text-slate-700 hidden font-semibold bg-slate-50">
+                                    <option value="ALL">Semua Bulan</option>
+                                </select>
+                                <button onclick="renderActiveChart()" class="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1 rounded transition flex items-center whitespace-nowrap">
+                                    <i class="fas fa-sync-alt mr-1"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div class="relative w-full h-80">
+                            <canvas id="paretoChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
+                        <div class="p-5 flex justify-between items-center bg-slate-50 border-b border-slate-100">
+                            <h3 class="font-bold text-slate-700">Rincian Saldo per Lokasi</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                                <thead>
+                                    <tr class="bg-slate-100 text-slate-600 text-sm uppercase tracking-wider border-b">
+                                        <th class="p-4 font-medium">Lokasi SJA</th>
+                                        <th class="p-4 font-medium">Saldo Awal</th>
+                                        <th class="p-4 font-medium">Total Masuk</th>
+                                        <th class="p-4 font-medium">Total Keluar</th>
+                                        <th class="p-4 font-medium">Sisa Saldo Aktual</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="batch-balance-table" class="text-sm divide-y divide-slate-100"></tbody>
+                            </table>
+                            <div id="empty-dashboard-msg" class="p-8 text-center text-slate-500 hidden">Belum ada data pergerakan di lokasi ini.</div>
+                        </div>
+                        <div id="balance-pagination-controls" class="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center hidden">
+                            <span id="balance-page-info" class="text-sm text-slate-600">Menampilkan 1-10 dari 0 data</span>
+                            <div class="flex gap-2">
+                                <button onclick="changeBalancePage(-1)" id="balance-prev-btn" class="px-3 py-1.5 border border-slate-300 rounded text-sm bg-white hover:bg-slate-100 disabled:opacity-50 transition"><i class="fas fa-chevron-left"></i> Sebelumnya</button>
+                                <button onclick="changeBalancePage(1)" id="balance-next-btn" class="px-3 py-1.5 border border-slate-300 rounded text-sm bg-white hover:bg-slate-100 disabled:opacity-50 transition">Selanjutnya <i class="fas fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
+                        <div class="p-5 flex justify-between items-center bg-slate-50 border-b border-slate-100">
+                            <h3 class="font-bold text-slate-700">Status Outstanding PO Solar</h3>
+                        </div>
+                        <div id="open-po-alert" class="hidden bg-orange-50 border-l-4 border-orange-500 p-4 m-4 rounded-r-lg shadow-sm">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 mt-0.5"><i class="fas fa-exclamation-triangle text-orange-500"></i></div>
+                                <div class="ml-3 w-full">
+                                    <p class="text-sm text-orange-800 font-bold mb-1" id="open-po-alert-title">Perhatian: Terdapat PO OPEN.</p>
+                                    <ul id="open-po-alert-list" class="list-disc list-inside text-sm text-orange-700 space-y-1 ml-1"></ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                                <thead>
+                                    <tr class="bg-slate-100 text-slate-600 text-sm uppercase tracking-wider border-b">
+                                        <th class="p-4 font-medium">Tanggal PO</th>
+                                        <th class="p-4 font-medium">No. PO</th>
+                                        <th class="p-4 font-medium">Supplier</th>
+                                        <th class="p-4 font-medium">Lokasi</th>
+                                        <th class="p-4 font-medium text-center">Qty PO (L)</th>
+                                        <th class="p-4 font-medium text-center">Diterima (L)</th>
+                                        <th class="p-4 font-medium text-center">Outstanding</th>
+                                        <th class="p-4 font-medium text-center">Status</th>
+                                        <th class="p-4 font-medium text-center th-admin-aksi hidden">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="outstanding-po-table" class="text-sm divide-y divide-slate-100"></tbody>
+                            </table>
+                            <div id="empty-outstanding-msg" class="p-8 text-center text-slate-500 hidden">Belum ada data PO di lokasi ini.</div>
+                        </div>
+                        <div id="po-pagination-controls" class="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center hidden">
+                            <span id="po-page-info" class="text-sm text-slate-600">Menampilkan 1-10 dari 0 data</span>
+                            <div class="flex gap-2">
+                                <button onclick="changePOPage(-1)" id="po-prev-btn" class="px-3 py-1.5 border border-slate-300 rounded text-sm bg-white hover:bg-slate-100 disabled:opacity-50 transition"><i class="fas fa-chevron-left"></i> Sebelumnya</button>
+                                <button onclick="changePOPage(1)" id="po-next-btn" class="px-3 py-1.5 border border-slate-300 rounded text-sm bg-white hover:bg-slate-100 disabled:opacity-50 transition">Selanjutnya <i class="fas fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
+                        <div class="p-5 flex justify-between items-center bg-slate-50 border-b border-slate-100">
+                            <h3 class="font-bold text-slate-700">Riwayat Kedatangan Terakhir</h3>
+                            <button onclick="navigate('inbound')" class="text-sm text-blue-600 hover:underline">Input Kedatangan</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                                <thead>
+                                    <tr class="bg-slate-100 text-slate-600 text-sm uppercase tracking-wider border-b">
+                                        <th class="p-4 font-medium">Tgl</th>
+                                        <th class="p-4 font-medium">Lokasi</th>
+                                        <th class="p-4 font-medium">Supplier & PO</th>
+                                        <th class="p-4 font-medium text-right">Qty Datang</th>
+                                        <th class="p-4 font-medium">Keterangan</th>
+                                        <th class="p-4 font-medium text-center th-admin-aksi hidden">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboard-recent-inbound-table" class="text-sm divide-y divide-slate-100"></tbody>
+                            </table>
+                            <div id="empty-recent-inbound-msg" class="p-8 text-center text-slate-500 hidden">Belum ada data kedatangan di lokasi ini.</div>
+                        </div>
+                        <div id="dash-inbound-pagination-controls" class="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center hidden">
+                            <span id="dash-inbound-page-info" class="text-sm text-slate-600">Menampilkan 1-10 dari 0 data</span>
+                            <div class="flex gap-2">
+                                <button onclick="changeDashInboundPage(-1)" id="dash-inbound-prev-btn" class="px-3 py-1.5 border border-slate-300 rounded text-sm bg-white hover:bg-slate-100 disabled:opacity-50 transition"><i class="fas fa-chevron-left"></i> Sebelumnya</button>
+                                <button onclick="changeDashInboundPage(1)" id="dash-inbound-next-btn" class="px-3 py-1.5 border border-slate-300 rounded text-sm bg-white hover:bg-slate-100 disabled:opacity-50 transition">Selanjutnya <i class="fas fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
+                        <div class="p-5 flex justify-between items-center bg-slate-50 border-b border-slate-100">
+                            <h3 class="font-bold text-slate-700">Riwayat Pengeluaran Terakhir</h3>
+                            <button onclick="navigate('outbound')" class="text-sm text-blue-600 hover:underline">Input Pengeluaran</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                                <thead>
+                                    <tr class="bg-slate-100 text-slate-600 text-sm uppercase tracking-wider border-b">
+                                        <th class="p-4 font-medium">Timestamp</th>
+                                        <th class="p-4 font-medium">Lokasi</th>
+                                        <th class="p-4 font-medium">Operator</th>
+                                        <th class="p-4 font-medium">Unit Alat</th>
+                                        <th class="p-4 font-medium">Shift</th>
+                                        <th class="p-4 font-medium text-right">Jumlah Solar (L)</th>
+                                        <th class="p-4 font-medium text-center">Foto Struk</th>
+                                        <th class="p-4 font-medium">Keterangan</th>
+                                        <th class="p-4 font-medium text-center th-admin-aksi hidden">Aksi</th>
+                                    </tr>
+                                    <!-- Baris Input Filter Per Kolom -->
+                                    <tr class="bg-white border-b border-slate-200">
+                                        <td class="p-2"><input type="text" id="filter-dash-out-date" onkeyup="applyDashOutboundFilter()" placeholder="Cari..." class="w-full text-xs p-1 border rounded outline-none bg-slate-50"></td>
+                                        <td class="p-2"><input type="text" id="filter-dash-out-lokasi" onkeyup="applyDashOutboundFilter()" placeholder="Cari..." class="w-full text-xs p-1 border rounded outline-none bg-slate-50"></td>
+                                        <td class="p-2"><input type="text" id="filter-dash-out-operator" onkeyup="applyDashOutboundFilter()" placeholder="Cari..." class="w-full text-xs p-1 border rounded outline-none bg-slate-50"></td>
+                                        <td class="p-2"><input type="text" id="filter-dash-out-unit" onkeyup="applyDashOutboundFilter()" placeholder="Cari..." class="w-full text-xs p-1 border rounded outline-none bg-slate-50"></td>
+                                        <td class="p-2"><input type="text" id="filter-dash-out-shift" onkeyup="applyDashOutboundFilter()" placeholder="Cari..." class="w-full text-xs p-1 border rounded outline-none bg-slate-50"></td>
+                                        <td class="p-2"></td>
+                                        <td class="p-2"></td>
+                                        <td class="p-2"><input type="text" id="filter-dash-out-notes" onkeyup="applyDashOutboundFilter()" placeholder="Cari..." class="w-full text-xs p-1 border rounded outline-none bg-slate-50"></td>
+                                        <td id="td-dash-out-aksi-filter" class="p-2 hidden bg-white"></td>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboard-recent-outbound-table" class="text-sm divide-y divide-slate-100"></tbody>
+                            </table>
+                            <div id="empty-recent-outbound-msg" class="p-8 text-center text-slate-500 hidden">Belum ada data pengeluaran di lokasi ini.</div>
+                        </div>
+                        <div id="outbound-pagination-controls" class="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center hidden">
+                            <span id="outbound-page-info" class="text-sm text-slate-600">Menampilkan 1-10 dari 0 data</span>
+                            <div class="flex gap-2">
+                                <button onclick="changeOutboundPage(-1)" id="outbound-prev-btn" class="px-3 py-1.5 border border-slate-300 rounded text-sm bg-white hover:bg-slate-100 disabled:opacity-50 transition"><i class="fas fa-chevron-left"></i> Sebelumnya</button>
+                                <button onclick="changeOutboundPage(1)" id="outbound-next-btn" class="px-3 py-1.5 border border-slate-300 rounded text-sm bg-white hover:bg-slate-100 disabled:opacity-50 transition">Selanjutnya <i class="fas fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-po" class="fade-in hidden">
+                    <h2 class="text-2xl font-bold mb-6 text-slate-800">Input PO Procurement Solar</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-1 bg-white rounded-xl shadow-sm p-6 h-fit relative">
+                            <div id="po-lock-overlay" class="absolute inset-0 bg-white/70 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center rounded-xl transition-all">
+                                <i class="fas fa-lock text-4xl text-slate-400 mb-3 drop-shadow-sm"></i>
+                                <p class="text-sm font-bold text-slate-700 text-center px-4" id="po-lock-msg">Login sebagai Purchasing</p>
+                            </div>
+                            <h3 class="font-bold text-slate-700 mb-4 pb-2 border-b">Buat PO Baru</h3>
+                            <form id="form-po" onsubmit="handlePOSubmit(event)" class="space-y-4">
+                                <div><label class="block text-sm font-medium text-slate-700 mb-1">Tanggal</label><input type="date" id="po-date" required class="w-full border border-slate-300 rounded-lg p-2.5 outline-none"></div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Lokasi SJA</label>
+                                    <select id="po-lokasi" required class="w-full border border-slate-300 rounded-lg p-2.5 outline-none bg-white">
+                                        <option value="" disabled selected>-- Pilih Lokasi --</option>
+                                        <option value="SJA SEPANJANG">SJA SEPANJANG</option><option value="SJA SEMARANG">SJA SEMARANG</option>
+                                        <option value="SJA SUKODONO">SJA SUKODONO</option><option value="SJA KARAWANG">SJA KARAWANG</option>
+                                    </select>
+                                </div>
+                                <div><label class="block text-sm font-medium text-slate-700 mb-1">Supplier</label><input type="text" id="po-supplier" required class="w-full border border-slate-300 rounded-lg p-2.5 outline-none"></div>
+                                <div><label class="block text-sm font-medium text-slate-700 mb-1">No. PO</label><input type="text" id="po-number" required class="w-full border border-slate-300 rounded-lg p-2.5 outline-none uppercase"></div>
+                                <div><label class="block text-sm font-medium text-slate-700 mb-1">Qty PO (L)</label><input type="number" id="po-qty" required min="0" step="any" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none"></div>
+                                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg flex justify-center items-center gap-2 mt-2"><i class="fas fa-plus"></i> Simpan PO</button>
+                            </form>
+                        </div>
+                        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm overflow-hidden flex flex-col h-fit max-h-[70vh] relative">
+                            <div id="po-table-lock-overlay" class="absolute inset-0 bg-white/70 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center rounded-xl transition-all">
+                                <i class="fas fa-lock text-4xl text-slate-400 mb-3"></i>
+                                <p class="text-sm font-bold text-slate-700 text-center px-4" id="po-table-lock-msg">Login sebagai Purchasing</p>
+                            </div>
+                            <div class="p-5 bg-slate-50 border-b border-slate-100"><h3 class="font-bold text-slate-700">Daftar PO</h3></div>
+                            <div class="overflow-x-auto flex-1 p-0">
+                                <table class="w-full text-left border-collapse whitespace-nowrap">
+                                    <thead><tr class="bg-slate-100 text-slate-600 text-xs uppercase tracking-wider sticky top-0 z-10 shadow-sm"><th class="p-4 font-medium">Tgl</th><th class="p-4 font-medium">Lokasi</th><th class="p-4 font-medium">No. PO</th><th class="p-4 font-medium">Supplier</th><th class="p-4 font-medium text-center">Qty (L)</th><th id="th-po-aksi" class="p-4 font-medium text-center hidden w-20">Aksi</th></tr></thead>
+                                    <tbody id="table-po-body" class="text-sm divide-y divide-slate-100"></tbody>
+                                </table>
+                                <div id="empty-po-msg" class="p-8 text-center text-slate-500">Belum ada PO.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-inbound" class="fade-in hidden">
+                    <h2 class="text-2xl font-bold mb-6 text-slate-800">Penerimaan Solar Baru</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-1 bg-white rounded-xl shadow-sm p-6 h-fit relative">
+                            <div id="in-lock-overlay" class="absolute inset-0 bg-white/70 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center rounded-xl transition-all">
+                                <i class="fas fa-lock text-4xl text-slate-400 mb-3"></i><p class="text-sm font-bold text-slate-700 text-center px-4" id="in-lock-msg">Login sebagai Gudang</p>
+                            </div>
+                            <h3 class="font-bold text-slate-700 mb-4 pb-2 border-b">Input Kedatangan</h3>
+                            <form id="form-inbound" onsubmit="handleInboundSubmit(event)" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Lokasi SJA</label>
+                                    <select id="in-lokasi" required onchange="updateInboundPODropdown()" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none bg-white">
+                                        <option value="" disabled selected>-- Pilih Lokasi --</option>
+                                        <option value="SJA SEPANJANG">SJA SEPANJANG</option><option value="SJA SEMARANG">SJA SEMARANG</option>
+                                        <option value="SJA SUKODONO">SJA SUKODONO</option><option value="SJA KARAWANG">SJA KARAWANG</option>
+                                    </select>
+                                </div>
+                                <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100">
+                                    <label class="block text-sm font-semibold text-indigo-800 mb-1"><i class="fas fa-link mr-1"></i> PO</label>
+                                    <select id="in-po" onchange="handleInboundPOChange()" class="w-full border border-indigo-300 rounded-lg p-2.5 outline-none bg-white shadow-sm font-medium"><option value="">-- Pilih Lokasi Dulu --</option></select>
+                                </div>
+                                <div><label class="block text-sm font-medium text-slate-700 mb-1">Tanggal</label><input type="date" id="in-date" required class="w-full border border-slate-300 rounded-lg p-2.5 outline-none"></div>
+                                <div><label class="block text-sm font-medium text-slate-700 mb-1">Supplier</label><input type="text" id="in-supplier" required class="w-full border border-slate-300 rounded-lg p-2.5 outline-none"></div>
+                                <div id="in-po-qty-container" class="hidden"><label class="block text-sm font-medium text-slate-700 mb-1">Qty di PO</label><input type="number" id="in-po-qty" class="w-full border border-slate-300 rounded-lg p-2.5 bg-slate-100 outline-none" readonly></div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Qty Datang (L)</label>
+                                    <input type="number" id="in-qty" required min="0" step="any" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none" oninput="calculateOutstanding()">
+                                    <p id="in-outstanding-info" class="text-xs mt-1 hidden"></p>
+                                </div>
+                                <div><label class="block text-sm font-medium text-slate-700 mb-1">Ket.</label><textarea id="in-notes" rows="2" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none"></textarea></div>
+                                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg flex justify-center items-center gap-2 mt-2"><i class="fas fa-save"></i> Simpan Kedatangan</button>
+                            </form>
+                        </div>
+                        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm overflow-hidden flex flex-col h-fit max-h-[70vh] relative">
+                            <div id="in-table-lock-overlay" class="absolute inset-0 bg-white/70 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center rounded-xl transition-all">
+                                <i class="fas fa-lock text-4xl text-slate-400 mb-3"></i><p class="text-sm font-bold text-slate-700 text-center px-4" id="in-table-lock-msg">Login Gudang</p>
+                            </div>
+                            <div class="p-5 bg-slate-50 border-b border-slate-100"><h3 class="font-bold text-slate-700">Riwayat Kedatangan</h3></div>
+                            <div class="overflow-x-auto flex-1 p-0">
+                                <table class="w-full text-left border-collapse whitespace-nowrap">
+                                    <thead>
+                                        <tr class="bg-slate-100 text-slate-600 text-xs uppercase tracking-wider sticky top-0 z-10 shadow-sm"><th class="p-4 font-medium">Tgl</th><th class="p-4 font-medium">Lokasi</th><th class="p-4 font-medium">Supplier & PO</th><th class="p-4 font-medium text-right">Qty</th><th class="p-4 font-medium">Ket.</th><th id="th-in-aksi" class="p-4 font-medium text-center hidden w-20">Aksi</th></tr>
+                                        <tr class="bg-white border-b border-slate-200">
+                                            <td class="p-2"><input type="text" id="filter-in-date" onkeyup="filterInboundTable()" placeholder="Cari..." class="w-full text-xs p-1 border rounded outline-none"></td>
+                                            <td class="p-2"><input type="text" id="filter-in-lokasi" onkeyup="filterInboundTable()" placeholder="Cari..." class="w-full text-xs p-1 border rounded outline-none"></td>
+                                            <td class="p-2"><input type="text" id="filter-in-supplier" onkeyup="filterInboundTable()" placeholder="Cari..." class="w-full text-xs p-1 border rounded outline-none"></td>
+                                            <td class="p-2"></td>
+                                            <td class="p-2"><input type="text" id="filter-in-notes" onkeyup="filterInboundTable()" placeholder="Cari..." class="w-full text-xs p-1 border rounded outline-none"></td>
+                                            <td id="td-in-aksi-filter" class="p-2 hidden"></td>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-inbound-body" class="text-sm divide-y divide-slate-100"></tbody>
+                                </table>
+                                <div id="empty-inbound-msg" class="p-8 text-center text-slate-500">Belum ada penerimaan.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-outbound" class="fade-in hidden">
+                    <h2 class="text-2xl font-bold mb-6 text-slate-800">Pengeluaran Solar</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-1 bg-white rounded-xl shadow-sm p-6 h-fit relative">
+                            <div id="out-lock-overlay" class="absolute inset-0 bg-white/70 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center rounded-xl transition-all">
+                                <i class="fas fa-lock text-4xl text-slate-400 mb-3"></i><p class="text-sm font-bold text-slate-700 text-center px-4" id="out-lock-msg">Login Gudang</p>
+                            </div>
+                            <h3 class="font-bold text-slate-700 mb-4 pb-2 border-b">Input Pengeluaran</h3>
+                            <form id="form-outbound" onsubmit="handleOutboundSubmit(event)" class="space-y-4">
+                                <div><label class="block text-sm font-medium text-slate-700 mb-1">Tanggal</label><input type="date" id="out-date" required class="w-full border border-slate-300 rounded-lg p-2.5 outline-none"></div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Lokasi SJA</label>
+                                    <select id="out-lokasi" required class="w-full border border-slate-300 rounded-lg p-2.5 outline-none bg-white">
+                                        <option value="" disabled selected>-- Pilih Lokasi --</option>
+                                        <option value="SJA SEPANJANG">SJA SEPANJANG</option><option value="SJA SEMARANG">SJA SEMARANG</option>
+                                        <option value="SJA SUKODONO">SJA SUKODONO</option><option value="SJA KARAWANG">SJA KARAWANG</option>
+                                    </select>
+                                </div>
+                                <div><label class="block text-sm font-medium text-slate-700 mb-1">Operator</label><input type="text" id="out-operator" required class="w-full border border-slate-300 rounded-lg p-2.5 outline-none uppercase"></div>
+                                <div class="flex gap-4">
+                                    <div class="flex-1">
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">Unit</label>
+                                        <select id="out-unit" required class="w-full border border-slate-300 rounded-lg p-2.5 outline-none bg-white">
+                                            <option value="" disabled selected>-- Pilih --</option>
+                                            <option value="PROBAT">PROBAT</option><option value="TRUK SPENTGROUND ( W 9273 NB )">TRUK SPENTGROUND ( W 9273 NB )</option>
+                                            <option value="TRUK SPENTGROUND ( W 9274 NB )">TRUK SPENTGROUND ( W 9274 NB )</option><option value="TRUK SPENTGROUND ( W 8557 PS )">TRUK SPENTGROUND ( W 8557 PS )</option>
+                                            <option value="DIESEL ENGINE">DIESEL ENGINE</option><option value="FORKLIFT 1 GBB ( 4 TON )">FORKLIFT 1 GBB ( 4 TON )</option>
+                                            <option value="FORKLIFT 2 GBB ( 5,5 TON )">FORKLIFT 2 GBB ( 5,5 TON )</option><option value="FORKLIFT 3 GBB ( 4 TON )">FORKLIFT 3 GBB ( 4 TON )</option>
+                                            <option value="FORKLIFT UTILITY">FORKLIFT UTILITY</option><option value="LOADER CATERPILLAR 2">LOADER CATERPILLAR 2</option><option value="LOADER BOBCAT">LOADER BOBCAT</option>
+                                        </select>
+                                    </div>
+                                    <div class="w-1/3">
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">Shift</label>
+                                        <select id="out-shift" required class="w-full border border-slate-300 rounded-lg p-2.5 outline-none bg-white">
+                                            <option value="" disabled selected>Shift</option><option value="SHIFT 1">SHIFT 1</option><option value="SHIFT 2">SHIFT 2</option><option value="SHIFT 3">SHIFT 3</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div><label class="block text-sm font-medium text-slate-700 mb-1">Qty (L)</label><input type="number" id="out-qty" required min="0" step="any" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none"></div>
+                                <div><label class="block text-sm font-medium text-slate-700 mb-1">Link Foto</label><input type="text" id="out-foto" placeholder="https://..." class="w-full border border-slate-300 rounded-lg p-2.5 outline-none text-blue-600"></div>
+                                <div><label class="block text-sm font-medium text-slate-700 mb-1">Keterangan</label><textarea id="out-notes" rows="2" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none"></textarea></div>
+                                <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 rounded-lg flex justify-center items-center gap-2 mt-4"><i class="fas fa-gas-pump"></i> Proses Pengeluaran</button>
+                            </form>
+                        </div>
+                        
+                        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm overflow-hidden flex flex-col h-fit max-h-[70vh] relative">
+                            <div id="out-table-lock-overlay" class="absolute inset-0 bg-white/70 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center rounded-xl transition-all">
+                                <i class="fas fa-lock text-4xl text-slate-400 mb-3 drop-shadow-sm"></i>
+                                <p class="text-sm font-bold text-slate-700 text-center px-4" id="out-table-lock-msg">Login sebagai Gudang untuk Melihat Riwayat Pengeluaran</p>
+                            </div>
+                            
+                            <div class="p-5 flex justify-between items-center bg-slate-50 border-b border-slate-100">
+                                <h3 class="font-bold text-slate-700">Riwayat Pengeluaran</h3>
+                                <button onclick="openSyncModal()" id="btn-sync-sheets" class="text-sm bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold py-1.5 px-3 rounded transition hidden flex items-center gap-2">
+                                    <i class="fas fa-sync-alt"></i> Sync dari G-Sheet
+                                </button>
+                            </div>
+                            <div class="overflow-x-auto flex-1 p-0">
+                                <table class="w-full text-left border-collapse whitespace-nowrap">
+                                    <thead>
+                                        <tr class="bg-slate-100 text-slate-600 text-xs uppercase tracking-wider sticky top-0 z-10 shadow-sm"><th class="p-4 font-medium">Tgl</th><th class="p-4 font-medium">Lokasi</th><th class="p-4 font-medium">Operator</th><th class="p-4 font-medium">Unit</th><th class="p-4 font-medium">Shift</th><th class="p-4 font-medium text-right">Qty (L)</th><th class="p-4 font-medium text-center">Foto</th><th class="p-4 font-medium">Ket.</th><th id="th-out-aksi" class="p-4 font-medium text-center hidden w-20">Aksi</th></tr>
+                                        <tr class="bg-white border-b border-slate-200">
+                                            <td class="p-2"><input type="text" id="filter-out-date" onkeyup="filterOutboundTable()" placeholder="Cari..." class="w-full text-xs p-1 border rounded outline-none"></td>
+                                            <td class="p-2"><input type="text" id="filter-out-lokasi" onkeyup="filterOutboundTable()" placeholder="Cari..." class="w-full text-xs p-1 border rounded outline-none"></td>
+                                            <td class="p-2"><input type="text" id="filter-out-operator" onkeyup="filterOutboundTable()" placeholder="Cari..." class="w-full text-xs p-1 border rounded outline-none"></td>
+                                            <td class="p-2"><input type="text" id="filter-out-unit" onkeyup="filterOutboundTable()" placeholder="Cari..." class="w-full text-xs p-1 border rounded outline-none"></td>
+                                            <td class="p-2"><input type="text" id="filter-out-shift" onkeyup="filterOutboundTable()" placeholder="Cari..." class="w-full text-xs p-1 border rounded outline-none"></td>
+                                            <td class="p-2"></td><td class="p-2"></td>
+                                            <td class="p-2"><input type="text" id="filter-out-notes" onkeyup="filterOutboundTable()" placeholder="Cari..." class="w-full text-xs p-1 border rounded outline-none"></td>
+                                            <td id="td-out-aksi-filter" class="p-2 hidden"></td>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-outbound-body" class="text-sm divide-y divide-slate-100"></tbody>
+                                </table>
+                                <div id="empty-outbound-msg" class="p-8 text-center text-slate-500">Belum ada pengeluaran.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, setDoc, doc, updateDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const configResponse = await fetch('./firebase-applet-config.json');
+        const firebaseConfig = await configResponse.json();
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = '1dfb1f45-3564-4778-ac9f-3f3933924717';
+        let txCollection;
+
+        const APP_USERS = {
+            "admin": { role: "admin", location: "ALL", pass: "Admin123", displayName: "Super Admin" },
+            "purc_sepanjang": { role: "purchasing", location: "SJA SEPANJANG", pass: "Purc123", displayName: "Purc. Sepanjang" },
+            "purc_semarang": { role: "purchasing", location: "SJA SEMARANG", pass: "Purc123", displayName: "Purc. Semarang" },
+            "purc_sukodono": { role: "purchasing", location: "SJA SUKODONO", pass: "Purc123", displayName: "Purc. Sukodono" },
+            "purc_karawang": { role: "purchasing", location: "SJA KARAWANG", pass: "Purc123", displayName: "Purc. Karawang" },
+            "gdg_sepanjang": { role: "gudang", location: "SJA SEPANJANG", pass: "Gdg123", displayName: "Gudang Sepanjang" },
+            "gdg_semarang": { role: "gudang", location: "SJA SEMARANG", pass: "Gdg123", displayName: "Gudang Semarang" },
+            "gdg_sukodono": { role: "gudang", location: "SJA SUKODONO", pass: "Gdg123", displayName: "Gudang Sukodono" },
+            "gdg_karawang": { role: "gudang", location: "SJA KARAWANG", pass: "Gdg123", displayName: "Gudang Karawang" }
+        };
+
+        let transactions = [];
+        let currentUser = null; 
+        let deletingTxId = null;
+        let paretoChartInstance = null;
+        
+        const GOOGLE_SHEETS_WEBHOOK = "https://script.google.com/macros/s/AKfycbwLVd9uRjtCXFiDAQE3gPz__UnkLBfCF_COIUR3OZC0BGDHRvQthi1boeluPL2Bk8TP/exec"; 
+        const SPREADSHEET_ID_FALLBACK = "1ABv940UCNKxRb11hrZ1qzT-TgPt0d0NE6XOSD9tYvC4";
+        const SHEET_GID_FALLBACK = "1243882852";
+
+        const INITIAL_BALANCES = { "SJA SUKODONO": 21046.6 };
+
+        const ITEMS_PER_PAGE_PO = 10, ITEMS_PER_PAGE_DASH = 10, ITEMS_PER_PAGE_BALANCE = 10;
+        let currentBalancePage = 1, allFilteredBalances = [];
+        let currentPOPage = 1, allFilteredPOs = [];
+        let currentDashInboundPage = 1, allFilteredDashInbounds = [];
+        let currentOutboundPage = 1, allFilteredOutbounds = [];
+
+        const monthOrder = {
+            "januari": 1, "februari": 2, "maret": 3, "april": 4, "mei": 5, "juni": 6,
+            "juli": 7, "agustus": 8, "september": 9, "oktober": 10, "november": 11, "desember": 12
+        };
+
+        function standardizeMonth(monthStr) {
+            if(!monthStr) return '';
+            const ml = monthStr.toString().toLowerCase().trim();
+            
+            const matchYYYYMM = ml.match(/^(\d{4})-(\d{2})$/);
+            if (matchYYYYMM) {
+                const mIndex = parseInt(matchYYYYMM[2], 10) - 1;
+                const monthNamesID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+                if (mIndex >= 0 && mIndex < 12) return monthNamesID[mIndex];
+            }
+
+            const map = {
+                "january": "Januari", "jan": "Januari", "januari": "Januari",
+                "february": "Februari", "feb": "Februari", "februari": "Februari",
+                "march": "Maret", "mar": "Maret", "maret": "Maret",
+                "april": "April", "apr": "April",
+                "may": "Mei", "mei": "Mei",
+                "june": "Juni", "jun": "Juni", "juni": "Juni",
+                "july": "Juli", "jul": "Juli", "juli": "Juli",
+                "august": "Agustus", "aug": "Agustus", "agustus": "Agustus",
+                "september": "September", "sep": "September",
+                "october": "Oktober", "oct": "Oktober", "oktober": "Oktober",
+                "november": "November", "nov": "November",
+                "december": "Desember", "dec": "Desember", "desember": "Desember"
+            };
+            return map[ml] || monthStr.trim(); 
+        }
+
+        function getMonthWeight(monthStr) {
+            if(!monthStr) return 999;
+            const standard = standardizeMonth(monthStr).toLowerCase();
+            if (monthOrder[standard]) return monthOrder[standard];
+            const match = standard.match(/^(\d{4})-(\d{2})$/);
+            if (match) return parseInt(match[1]) * 100 + parseInt(match[2]);
+            return 999; 
+        }
+
+        const runInit = () => {
+            const today = new Date().toISOString().split('T')[0];
+            if(document.getElementById('in-date')) document.getElementById('in-date').value = today;
+            if(document.getElementById('out-date')) document.getElementById('out-date').value = today;
+            if(document.getElementById('po-date')) document.getElementById('po-date').value = today;
+            
+            updateAuthUI();
+
+            const initAuth = async () => {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    console.log("Firebase Auth Success");
+                    txCollection = collection(db, 'artifacts', appId, 'public', 'data', 'solar_transactions');
+                    onSnapshot(txCollection, (snapshot) => {
+                        transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        updateUI();
+                        updateCloudStatus('connected');
+                    }, (error) => {
+                        console.error("Firestore error:", error);
+                        showToast("Gagal memuat data dari Cloud", "error");
+                        updateCloudStatus('error');
+                    });
+                } catch (error) {
+                    console.error("Auth error:", error);
+                    showToast("Gagal terhubung ke Cloud", "error");
+                    updateCloudStatus('error');
+                }
+            };
+            initAuth();
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', runInit);
+        } else {
+            runInit();
+        }
+
+        function navigate(viewName) {
+            ['dashboard', 'po', 'inbound', 'outbound'].forEach(v => {
+                document.getElementById(`view-${v}`).classList.add('hidden');
+                if(document.getElementById(`nav-${v}`)) {
+                    document.getElementById(`nav-${v}`).className = 'w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-700 transition-colors';
+                }
+            });
+            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+            if(document.getElementById(`nav-${viewName}`)) {
+               document.getElementById(`nav-${viewName}`).className = 'w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-900 border-l-4 border-blue-500 transition-colors font-semibold';
+            }
+            updateUI();
+        }
+
+        function toggleLoginModal() {
+            const modal = document.getElementById('login-modal');
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                document.getElementById('login-username').value = '';
+                document.getElementById('login-password').value = '';
+                setTimeout(() => document.getElementById('login-username').focus(), 100);
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function handleLogin(e) {
+            if (e) e.preventDefault();
+            const u = document.getElementById('login-username').value.trim().toLowerCase();
+            const p = document.getElementById('login-password').value.trim();
+            if (APP_USERS[u] && APP_USERS[u].pass === p) {
+                currentUser = { username: u, ...APP_USERS[u] };
+                toggleLoginModal();
+                updateAuthUI();
+                showToast(`Berhasil login sebagai ${APP_USERS[u].displayName}`, "success");
+            } else {
+                showToast("Username atau password salah!", "error");
+            }
+        }
+
+        function logoutUser() {
+            currentUser = null;
+            updateAuthUI();
+            navigate('dashboard'); 
+            showToast("Berhasil logout dari sistem", "success");
+        }
+
+        function applyLocationLock() {
+            const formSelects = ['po-lokasi', 'in-lokasi', 'out-lokasi'];
+            const filterDashboard = document.getElementById('dashboard-filter-lokasi');
+            if (currentUser && (currentUser.role === 'purchasing' || currentUser.role === 'gudang')) {
+                formSelects.forEach(id => {
+                    const el = document.getElementById(id);
+                    if(el) { el.value = currentUser.location; el.disabled = true; }
+                });
+                if(filterDashboard) filterDashboard.value = currentUser.location;
+            } else {
+                formSelects.forEach(id => {
+                    const el = document.getElementById(id);
+                    if(el) { el.disabled = false; if(!currentUser) el.value = ''; }
+                });
+                if(filterDashboard && !currentUser) filterDashboard.value = 'ALL';
+            }
+        }
+
+        function updateAuthUI() {
+            const btnLogin = document.getElementById('sidebar-login-btn');
+            const btnLogout = document.getElementById('sidebar-logout-btn');
+            const mBtnLogin = document.getElementById('mobile-login-btn');
+            const mBtnLogout = document.getElementById('mobile-logout-btn');
+            const usernameDisplay = document.getElementById('logout-username');
+            const roleDisplay = document.getElementById('current-user-role');
+            const allAdminAksiCols = document.querySelectorAll('.th-admin-aksi');
+            const adminOnlyBtns = document.querySelectorAll('.admin-only-btn');
+            
+            const setLock = (id, msg, show) => {
+                const el = document.getElementById(id);
+                if(el) {
+                    if(show) { el.classList.remove('hidden'); if(msg) el.querySelector('p').textContent = msg; }
+                    else el.classList.add('hidden');
+                }
+            };
+
+            if (currentUser) {
+                if(btnLogin) btnLogin.classList.add('hidden');
+                if(btnLogout) btnLogout.classList.remove('hidden');
+                if(mBtnLogin) mBtnLogin.classList.add('hidden');
+                if(mBtnLogout) mBtnLogout.classList.remove('hidden');
+                if(usernameDisplay) usernameDisplay.textContent = currentUser.displayName;
+                if(roleDisplay) roleDisplay.textContent = currentUser.displayName;
+                
+                setLock('po-lock-overlay', '', false); setLock('in-lock-overlay', '', false); setLock('out-lock-overlay', '', false);
+                setLock('po-table-lock-overlay', '', false); setLock('in-table-lock-overlay', '', false); setLock('out-table-lock-overlay', '', false);
+
+                if (currentUser.role === 'purchasing') {
+                    setLock('in-lock-overlay', 'Hanya untuk Gudang', true); setLock('out-lock-overlay', 'Hanya untuk Gudang', true);
+                    setLock('in-table-lock-overlay', 'Hanya untuk Gudang', true); setLock('out-table-lock-overlay', 'Hanya untuk Gudang', true);
+                } else if (currentUser.role === 'gudang') {
+                    setLock('po-lock-overlay', 'Hanya untuk Purchasing', true); setLock('po-table-lock-overlay', 'Hanya untuk Purchasing', true);
+                }
+
+                applyLocationLock();
+
+                const isAdm = currentUser.role === 'admin';
+                ['th-in-aksi', 'th-out-aksi', 'td-in-aksi-filter', 'td-out-aksi-filter', 'td-dash-out-aksi-filter', 'th-po-aksi', 'btn-reset-data'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if(el) { isAdm ? el.classList.remove('hidden') : el.classList.add('hidden'); }
+                });
+                allAdminAksiCols.forEach(col => isAdm ? col.classList.remove('hidden') : col.classList.add('hidden'));
+                adminOnlyBtns.forEach(btn => isAdm ? btn.classList.remove('hidden') : btn.classList.add('hidden'));
+
+                const btnSync = document.getElementById('btn-sync-sheets');
+                if(btnSync) { (isAdm || currentUser.role === 'gudang') ? btnSync.classList.remove('hidden') : btnSync.classList.add('hidden'); }
+
+            } else {
+                if(btnLogin) btnLogin.classList.remove('hidden');
+                if(btnLogout) btnLogout.classList.add('hidden');
+                if(mBtnLogin) mBtnLogin.classList.remove('hidden');
+                if(mBtnLogout) mBtnLogout.classList.add('hidden');
+                if(usernameDisplay) usernameDisplay.textContent = "";
+                if(roleDisplay) roleDisplay.textContent = "Tamu (Read-Only)";
+                
+                setLock('po-lock-overlay', 'Login sebagai Purchasing', true); setLock('in-lock-overlay', 'Login sebagai Gudang', true); setLock('out-lock-overlay', 'Login Gudang', true);
+                setLock('po-table-lock-overlay', 'Login sebagai Purchasing', true); setLock('in-table-lock-overlay', 'Login sebagai Gudang', true); setLock('out-table-lock-overlay', 'Login Gudang', true);
+
+                applyLocationLock();
+
+                ['th-in-aksi', 'th-out-aksi', 'td-in-aksi-filter', 'td-out-aksi-filter', 'td-dash-out-aksi-filter', 'th-po-aksi', 'btn-reset-data', 'btn-sync-sheets'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if(el) el.classList.add('hidden');
+                });
+                allAdminAksiCols.forEach(col => col.classList.add('hidden'));
+                adminOnlyBtns.forEach(btn => btn.classList.add('hidden'));
+            }
+            const paretoContainer = document.getElementById('pareto-chart-container');
+            if (paretoContainer) { paretoContainer.classList.remove('hidden'); setTimeout(renderActiveChart, 100); }
+            updateUI(); 
+        }
+
+        function filterInboundTable() {
+            const dateFilter = (document.getElementById('filter-in-date')?.value || '').toLowerCase();
+            const lokasiFilter = (document.getElementById('filter-in-lokasi')?.value || '').toLowerCase();
+            const supplierFilter = (document.getElementById('filter-in-supplier')?.value || '').toLowerCase();
+            const notesFilter = (document.getElementById('filter-in-notes')?.value || '').toLowerCase();
+            const rows = document.getElementById('table-inbound-body').getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const tdDate = rows[i].cells[0]?.textContent.toLowerCase() || '';
+                const tdLokasi = rows[i].cells[1]?.textContent.toLowerCase() || '';
+                const tdSupplier = rows[i].cells[2]?.textContent.toLowerCase() || '';
+                const tdNotes = rows[i].cells[4]?.textContent.toLowerCase() || '';
+                if (tdDate.includes(dateFilter) && tdLokasi.includes(lokasiFilter) && tdSupplier.includes(supplierFilter) && tdNotes.includes(notesFilter)) rows[i].style.display = "";
+                else rows[i].style.display = "none";
+            }
+        }
+
+        function filterOutboundTable() {
+            const dateFilter = (document.getElementById('filter-out-date')?.value || '').toLowerCase();
+            const lokasiFilter = (document.getElementById('filter-out-lokasi')?.value || '').toLowerCase();
+            const operatorFilter = (document.getElementById('filter-out-operator')?.value || '').toLowerCase();
+            const unitFilter = (document.getElementById('filter-out-unit')?.value || '').toLowerCase();
+            const shiftFilter = (document.getElementById('filter-out-shift')?.value || '').toLowerCase();
+            const notesFilter = (document.getElementById('filter-out-notes')?.value || '').toLowerCase();
+            const rows = document.getElementById('table-outbound-body').getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const tdDate = rows[i].cells[0]?.textContent.toLowerCase() || '';
+                const tdLokasi = rows[i].cells[1]?.textContent.toLowerCase() || '';
+                const tdOperator = rows[i].cells[2]?.textContent.toLowerCase() || '';
+                const tdUnit = rows[i].cells[3]?.textContent.toLowerCase() || '';
+                const tdShift = rows[i].cells[4]?.textContent.toLowerCase() || '';
+                const tdNotes = rows[i].cells[7]?.textContent.toLowerCase() || '';
+                if (tdDate.includes(dateFilter) && tdLokasi.includes(lokasiFilter) && tdOperator.includes(operatorFilter) && tdUnit.includes(unitFilter) && tdShift.includes(shiftFilter) && tdNotes.includes(notesFilter)) rows[i].style.display = "";
+                else rows[i].style.display = "none";
+            }
+        }
+
+        function renderActiveChart() {
+            const chartType = document.getElementById('chart-type-selector').value;
+            const monthFilterEl = document.getElementById('chart-month-filter');
+
+            if (chartType === 'pareto_device') {
+                monthFilterEl.classList.remove('hidden');
+                updateMonthFilterOptions();
+                renderParetoDeviceChart();
+            } else if (chartType === 'bulanan') {
+                monthFilterEl.classList.add('hidden');
+                renderBulananChart();
+            } else {
+                monthFilterEl.classList.add('hidden');
+                renderPergerakanChart();
+            }
+        }
+
+        function updateMonthFilterOptions() {
+            const filterEl = document.getElementById('chart-month-filter');
+            if (!filterEl) return;
+            
+            const currentVal = filterEl.value;
+            const locFilter = document.getElementById('dashboard-filter-lokasi')?.value || 'ALL';
+            
+            let outbounds = transactions.filter(t => t.type === 'OUT');
+            if (locFilter !== 'ALL') outbounds = outbounds.filter(t => t.lokasi === locFilter);
+            
+            const monthSet = new Set();
+            outbounds.forEach(trx => {
+                let rawM = trx.bulanSheet ? trx.bulanSheet : (trx.date ? trx.date.substring(0, 7) : '');
+                let mLabel = standardizeMonth(rawM);
+                if (mLabel) monthSet.add(mLabel);
+            });
+            
+            const sorted = Array.from(monthSet).sort((a,b) => getMonthWeight(a) - getMonthWeight(b));
+            
+            filterEl.innerHTML = '<option value="ALL">Semua Bulan</option>';
+            sorted.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = m;
+                filterEl.appendChild(opt);
+            });
+            
+            if (currentVal && sorted.includes(currentVal)) {
+                filterEl.value = currentVal;
+            } else {
+                filterEl.value = 'ALL';
+            }
+        }
+
+        function renderBulananChart() {
+            if (!transactions || transactions.length === 0) return;
+            const locFilter = document.getElementById('dashboard-filter-lokasi').value;
+            let outbounds = transactions.filter(t => t.type === 'OUT');
+            if (locFilter !== 'ALL') outbounds = outbounds.filter(t => t.lokasi === locFilter);
+
+            const monthlyData = {};
+            outbounds.forEach(trx => {
+                let rawM = trx.bulanSheet ? trx.bulanSheet : (trx.date ? trx.date.substring(0, 7) : '');
+                let monthLabel = standardizeMonth(rawM) || 'Unknown';
+                if (!monthlyData[monthLabel]) monthlyData[monthLabel] = 0;
+                monthlyData[monthLabel] += (parseFloat(trx.qty) || 0);
+            });
+
+            const sortedMonths = Object.keys(monthlyData).sort((a, b) => getMonthWeight(a) - getMonthWeight(b));
+            const labels = sortedMonths;
+            const dataQty = sortedMonths.map(m => monthlyData[m]);
+            const ctx = document.getElementById('paretoChart').getContext('2d');
+            if (paretoChartInstance) paretoChartInstance.destroy();
+
+            paretoChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Pengeluaran Solar (Liter)',
+                        data: dataQty,
+                        backgroundColor: '#ef4444', 
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top', labels: { font: { family: "'Inter', sans-serif" } } } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Jumlah Liter' }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        function renderPergerakanChart() {
+            if (!transactions || transactions.length === 0) return;
+            const locFilter = document.getElementById('dashboard-filter-lokasi').value;
+            let filteredTx = locFilter !== 'ALL' ? transactions.filter(t => t.lokasi === locFilter) : transactions;
+
+            const plantData = {};
+            filteredTx.forEach(trx => {
+                if (trx.type === 'PO') return; 
+                const loc = trx.lokasi || 'Tanpa Lokasi';
+                if (!plantData[loc]) plantData[loc] = { in: 0, out: 0, totalAktivitas: 0 };
+                if (trx.type === 'IN') { plantData[loc].in += (trx.qty || 0); plantData[loc].totalAktivitas += (trx.qty || 0); }
+                else if (trx.type === 'OUT') { plantData[loc].out += (trx.qty || 0); plantData[loc].totalAktivitas += (trx.qty || 0); }
+            });
+
+            const sortedPlants = Object.keys(plantData).map(loc => ({
+                lokasi: loc, in: plantData[loc].in, out: plantData[loc].out, total: plantData[loc].totalAktivitas
+            })).sort((a, b) => b.total - a.total);
+
+            const grandTotal = sortedPlants.reduce((sum, p) => sum + p.total, 0);
+            let cumulative = 0;
+            const labels = [], dataIn = [], dataOut = [], dataCumulativePct = [];
+
+            sortedPlants.forEach(p => {
+                labels.push(p.lokasi); dataIn.push(p.in); dataOut.push(p.out);
+                cumulative += p.total;
+                dataCumulativePct.push(grandTotal > 0 ? ((cumulative / grandTotal) * 100).toFixed(1) : 0);
+            });
+
+            const ctx = document.getElementById('paretoChart').getContext('2d');
+            if (paretoChartInstance) paretoChartInstance.destroy();
+
+            paretoChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { type: 'line', label: 'Persentase Kumulatif (%)', data: dataCumulativePct, borderColor: '#f59e0b', backgroundColor: '#f59e0b', borderWidth: 2, yAxisID: 'y-pct', tension: 0.3, fill: false, marker: { size: 5 } },
+                        { type: 'bar', label: 'Kedatangan (Liter)', data: dataIn, backgroundColor: '#3b82f6', yAxisID: 'y', borderRadius: 4 },
+                        { type: 'bar', label: 'Pengeluaran (Liter)', data: dataOut, backgroundColor: '#ef4444', yAxisID: 'y', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { position: 'top', labels: { font: { family: "'Inter', sans-serif" } } } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Jumlah Liter' }, beginAtZero: true },
+                        'y-pct': { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Persentase (%)' }, beginAtZero: true, max: 105, grid: { drawOnChartArea: false } }
+                    }
+                }
+            });
+        }
+
+        function renderParetoDeviceChart() {
+            if (!transactions || transactions.length === 0) return;
+            const monthFilter = document.getElementById('chart-month-filter').value;
+            const locFilter = document.getElementById('dashboard-filter-lokasi').value;
+
+            let outbounds = transactions.filter(t => t.type === 'OUT');
+            if (locFilter !== 'ALL') outbounds = outbounds.filter(t => t.lokasi === locFilter);
+            if (monthFilter && monthFilter !== 'ALL') {
+                outbounds = outbounds.filter(t => standardizeMonth(t.bulanSheet || (t.date ? t.date.substring(0, 7) : '')) === monthFilter);
+            }
+
+            const deviceData = {};
+            outbounds.forEach(trx => {
+                const unit = (trx.unit || 'Tanpa Unit').toUpperCase().trim();
+                if (!deviceData[unit]) deviceData[unit] = 0;
+                deviceData[unit] += (parseFloat(trx.qty) || 0);
+            });
+
+            const sortedDevices = Object.keys(deviceData).map(u => ({ unit: u, qty: deviceData[u] })).sort((a, b) => b.qty - a.qty).slice(0, 5);
+            const grandTotal = sortedDevices.reduce((sum, d) => sum + d.qty, 0);
+            let cumulative = 0;
+            const labels = [], dataQty = [], dataCumulativePct = [];
+
+            sortedDevices.forEach(d => {
+                labels.push(d.unit); dataQty.push(d.qty);
+                cumulative += d.qty;
+                dataCumulativePct.push(grandTotal > 0 ? ((cumulative / grandTotal) * 100).toFixed(1) : 0);
+            });
+
+            const ctx = document.getElementById('paretoChart').getContext('2d');
+            if (paretoChartInstance) paretoChartInstance.destroy();
+
+            paretoChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { type: 'line', label: 'Persentase Kumulatif (%)', data: dataCumulativePct, borderColor: '#8b5cf6', backgroundColor: '#8b5cf6', borderWidth: 2, yAxisID: 'y-pct', tension: 0.3, fill: false, marker: { size: 5 } },
+                        { type: 'bar', label: 'Penggunaan Solar (Liter)', data: dataQty, backgroundColor: '#ec4899', yAxisID: 'y', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { position: 'top', labels: { font: { family: "'Inter', sans-serif" } } } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { maxRotation: 45, minRotation: 45 } },
+                        y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Jumlah Liter' }, beginAtZero: true },
+                        'y-pct': { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Persentase (%)' }, beginAtZero: true, max: 105, grid: { drawOnChartArea: false } }
+                    }
+                }
+            });
+        }
+
+        function updateUI() {
+            renderDashboard(); renderPOTable(); renderInboundTable(); renderOutboundTable();
+            try { updateInboundPODropdown(); } catch(e) {}
+            const paretoContainer = document.getElementById('pareto-chart-container');
+            if(paretoContainer) { paretoContainer.classList.remove('hidden'); renderActiveChart(); }
+        }
+
+        function confirmDelete(id) { deletingTxId = id; document.getElementById('confirm-modal').classList.remove('hidden'); }
+        function closeConfirmModal() { deletingTxId = null; document.getElementById('confirm-modal').classList.add('hidden'); }
+        async function executeDelete() {
+            if (!deletingTxId || !txCollection || !auth.currentUser) return;
+            try {
+                const trxToDelete = transactions.find(t => t.id === deletingTxId);
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'solar_transactions', deletingTxId));
+                showToast("Data berhasil dihapus", "success");
+            } catch (err) { console.error(err); showToast("Gagal menghapus data", "error"); } 
+            finally { closeConfirmModal(); }
+        }
+
+        function openEditModal(id) {
+            try {
+                const trx = transactions.find(t => t.id === id);
+                if (!trx) return showToast("Data tidak ditemukan!", "error");
+                const setVal = (eid, value) => { const el = document.getElementById(eid); if (el) el.value = value; }
+                setVal('edit-id', trx.id); setVal('edit-type', trx.type); setVal('edit-date', trx.date || ''); setVal('edit-lokasi', trx.lokasi || '');
+                
+                const supplierContainer = document.getElementById('edit-supplier-container'), qtyContainer = document.getElementById('edit-qty-container'), notesContainer = document.getElementById('edit-notes-container'), outboundContainer = document.getElementById('edit-outbound-container');
+                if (supplierContainer) supplierContainer.classList.add('hidden'); if (outboundContainer) outboundContainer.classList.add('hidden');
+                if (qtyContainer) qtyContainer.classList.remove('hidden'); if (notesContainer) notesContainer.classList.remove('hidden');
+                document.getElementById('edit-qty').required = true;
+                setVal('edit-qty', trx.qty || 1); setVal('edit-notes', trx.notes || '');
+
+                if (trx.type === 'IN' || trx.type === 'PO') {
+                    if (supplierContainer) supplierContainer.classList.remove('hidden');
+                    setVal('edit-supplier', trx.supplier || ''); setVal('edit-po', trx.po || trx.poNumber || ''); setVal('edit-po-qty', trx.poQty || '');
+                    if(trx.type === 'PO') { 
+                        if (notesContainer) notesContainer.classList.add('hidden'); 
+                        if (qtyContainer) qtyContainer.classList.add('hidden'); 
+                        document.getElementById('edit-qty').required = false;
+                        setVal('edit-po-qty', trx.poQty || 1); setVal('edit-po', trx.poNumber || ''); 
+                    }
+                } else if (trx.type === 'OUT') {
+                    setVal('edit-supplier', ''); setVal('edit-po', ''); setVal('edit-po-qty', '');
+                    if (outboundContainer) outboundContainer.classList.remove('hidden');
+                    setVal('edit-operator', trx.operator || ''); setVal('edit-unit', trx.unit || ''); setVal('edit-shift', trx.shift || 'SHIFT 1'); setVal('edit-foto', trx.fotoUrl || '');
+                }
+                document.getElementById('edit-modal').classList.remove('hidden');
+            } catch (error) { console.error("Error opening edit modal:", error); showToast("Terjadi kesalahan", "error"); }
+        }
+        function closeEditModal() { document.getElementById('edit-modal').classList.add('hidden'); }
+        async function handleEditSubmit(e) {
+            e.preventDefault();
+            if (!auth.currentUser) return showToast("Tidak dapat menyimpan, belum terautentikasi.", "error");
+            try {
+                const id = document.getElementById('edit-id').value, type = document.getElementById('edit-type').value;
+                const getVal = (eid) => { const el = document.getElementById(eid); return el ? el.value : ''; }
+                const updateData = { date: getVal('edit-date'), lokasi: getVal('edit-lokasi') };
+
+                if (type !== 'PO') { updateData.qty = parseFloat(getVal('edit-qty')) || 0; updateData.notes = getVal('edit-notes'); }
+                if (type === 'IN' || type === 'PO') {
+                    updateData.supplier = getVal('edit-supplier');
+                    const poVal = getVal('edit-po').toUpperCase().trim(), poQtyVal = parseFloat(getVal('edit-po-qty')) || 0;
+                    if (type === 'IN') { updateData.po = poVal; updateData.poQty = poQtyVal; } 
+                    else if (type === 'PO') { updateData.poNumber = poVal; updateData.poQty = poQtyVal; }
+                } else if (type === 'OUT') {
+                    updateData.operator = getVal('edit-operator').toUpperCase(); updateData.unit = getVal('edit-unit');
+                    updateData.shift = getVal('edit-shift'); updateData.fotoUrl = getVal('edit-foto');
+                }
+
+                if (type === 'PO') {
+                    const originalTrx = transactions.find(t => t.id === id);
+                    if (originalTrx) {
+                        const oldPoNumber = originalTrx.poNumber, newPoNumber = getVal('edit-po').toUpperCase().trim();
+                        if (oldPoNumber !== newPoNumber || originalTrx.poQty !== updateData.poQty || originalTrx.supplier !== updateData.supplier) {
+                            const linkedInbounds = transactions.filter(t => t.type === 'IN' && t.po === oldPoNumber);
+                            for (const inb of linkedInbounds) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'solar_transactions', inb.id), { po: newPoNumber, poQty: updateData.poQty, supplier: updateData.supplier });
+                        }
+                    }
+                }
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'solar_transactions', id), updateData);
+                showToast("Data diperbarui", "success"); closeEditModal();
+            } catch (err) { console.error(err); showToast("Gagal memperbarui", "error"); }
+        }
+
+        async function handlePOSubmit(e) {
+            e.preventDefault();
+            if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'purchasing')) return showToast("Akses ditolak.", "error");
+            if (!auth.currentUser) return showToast("Menunggu koneksi cloud...", "error");
+            
+            const date = document.getElementById('po-date').value, lokasi = document.getElementById('po-lokasi').value, supplier = document.getElementById('po-supplier').value, poNumber = document.getElementById('po-number').value.toUpperCase().trim(), poQty = parseFloat(document.getElementById('po-qty').value);
+            if(transactions.find(t => t.type === 'PO' && t.poNumber === poNumber)) return showToast(`PO ${poNumber} sudah ada.`, "error");
+
+            try {
+                await addDoc(txCollection, { type: 'PO', date, lokasi, supplier, poNumber, poQty, timestamp: Date.now() });
+                ['po-supplier', 'po-number', 'po-qty'].forEach(id => document.getElementById(id).value = '');
+                showToast(`PO ${poNumber} ditambahkan!`, 'success');
+            } catch (err) { showToast("Gagal", "error"); }
+        }
+
+        function handleInboundPOChange() {
+            const selectedPO = document.getElementById('in-po').value, supplierInput = document.getElementById('in-supplier'), qtyContainer = document.getElementById('in-po-qty-container'), qtyInput = document.getElementById('in-po-qty');
+            if (selectedPO) {
+                const poData = transactions.find(t => t.type === 'PO' && t.poNumber === selectedPO);
+                if (poData) {
+                    supplierInput.value = poData.supplier; supplierInput.readOnly = true; supplierInput.classList.add('bg-slate-100', 'text-slate-600');
+                    if(currentUser && currentUser.role === 'admin') document.getElementById('in-lokasi').value = poData.lokasi;
+                    qtyContainer.classList.remove('hidden'); qtyInput.value = poData.poQty;
+                }
+            } else {
+                supplierInput.value = ''; supplierInput.readOnly = false; supplierInput.classList.remove('bg-slate-100', 'text-slate-600');
+                qtyContainer.classList.add('hidden'); qtyInput.value = '';
+            }
+            calculateOutstanding();
+        }
+
+        function updateInboundPODropdown() {
+            const select = document.getElementById('in-po'), lokasiSelected = document.getElementById('in-lokasi').value, currentVal = select.value;
+            if (!lokasiSelected) { select.innerHTML = '<option value="">-- Pilih Lokasi Terlebih Dahulu --</option>'; return; }
+            select.innerHTML = '<option value="">-- Penerimaan Manual --</option>';
+            const pos = transactions.filter(t => t.type === 'PO' && t.lokasi === lokasiSelected).sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0));
+            pos.forEach(p => {
+                const opt = document.createElement('option');
+                let received = 0; transactions.forEach(trx => { if(trx.type === 'IN' && trx.po === p.poNumber) received += trx.qty });
+                const sisa = p.poQty - received;
+                opt.value = p.poNumber; opt.textContent = `PO: ${p.poNumber} - ${p.supplier}` + (sisa > 0 ? ` (Sisa: ${sisa})` : ` (Selesai)`);
+                select.appendChild(opt);
+            });
+            if (currentVal && pos.find(p => p.poNumber === currentVal)) select.value = currentVal; else { select.value = ''; handleInboundPOChange(); }
+        }
+
+        async function handleInboundSubmit(e) {
+            e.preventDefault();
+            if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'gudang')) return showToast("Akses ditolak.", "error");
+            if (!auth.currentUser) return showToast("Menunggu koneksi cloud...", "error");
+            
+            const selectedPO = document.getElementById('in-po').value, poData = transactions.find(t => t.type === 'PO' && t.poNumber === selectedPO);
+            const qty = parseFloat(document.getElementById('in-qty').value), poQty = poData ? poData.poQty : 0;
+            
+            try {
+                await addDoc(txCollection, { type: 'IN', lokasi: document.getElementById('in-lokasi').value, date: document.getElementById('in-date').value, supplier: document.getElementById('in-supplier').value, po: selectedPO || '', poQty, qty, notes: document.getElementById('in-notes').value, timestamp: Date.now() });
+                document.getElementById('in-po').value = '';
+                if(currentUser && currentUser.role === 'admin') document.getElementById('in-lokasi').value = '';
+                document.getElementById('in-supplier').value = ''; document.getElementById('in-supplier').readOnly = false; document.getElementById('in-supplier').classList.remove('bg-slate-100', 'text-slate-600');
+                document.getElementById('in-po-qty-container').classList.add('hidden'); document.getElementById('in-po-qty').value = ''; document.getElementById('in-qty').value = ''; document.getElementById('in-notes').value = ''; document.getElementById('in-outstanding-info').classList.add('hidden');
+                showToast(`Berhasil menerima ${qty} Liter solar.`, 'success');
+            } catch (err) { showToast("Gagal menyimpan", "error"); }
+        }
+
+        async function handleOutboundSubmit(e) {
+            e.preventDefault();
+            if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'gudang')) return showToast("Akses ditolak.", "error");
+            if (!auth.currentUser) return showToast("Menunggu koneksi cloud...", "error");
+            
+            const lokasi = document.getElementById('out-lokasi').value, qty = parseFloat(document.getElementById('out-qty').value);
+            const balances = getStockBalanceFiltered(transactions), locStock = balances.find(b => b.lokasi === lokasi);
+            if (!locStock || qty > locStock.currentBalance) return showToast(`Gagal! Sisa saldo di ${lokasi} hanya ${locStock ? locStock.currentBalance : 0} L.`, 'error');
+
+            const newTx = { type: 'OUT', lokasi, operator: document.getElementById('out-operator').value.toUpperCase(), unit: document.getElementById('out-unit').value, shift: document.getElementById('out-shift').value, date: document.getElementById('out-date').value, qty, fotoUrl: document.getElementById('out-foto').value, notes: document.getElementById('out-notes').value, timestamp: Date.now() };
+            try {
+                const docRef = await addDoc(txCollection, newTx);
+                if(currentUser && currentUser.role === 'admin') document.getElementById('out-lokasi').value = '';
+                ['out-operator', 'out-unit', 'out-shift', 'out-qty', 'out-foto', 'out-notes'].forEach(id => document.getElementById(id).value = '');
+                showToast(`Berhasil mengeluarkan ${qty} L.`, 'success');
+            } catch (err) { showToast("Gagal", "error"); }
+        }
+
+        function calculateOutstanding() {
+            const selectedPO = document.getElementById('in-po').value, infoEl = document.getElementById('in-outstanding-info');
+            if (!selectedPO) { infoEl.classList.add('hidden'); return; }
+            const poData = transactions.find(t => t.type === 'PO' && t.poNumber === selectedPO), poQty = poData ? poData.poQty : 0, incomingQty = parseFloat(document.getElementById('in-qty').value) || 0;
+            if (poQty <= 0) { infoEl.classList.add('hidden'); return; }
+
+            let pastReceived = 0; transactions.forEach(trx => { if (trx.type === 'IN' && trx.po === selectedPO) pastReceived += trx.qty; });
+            const outstanding = poQty - pastReceived - incomingQty;
+            infoEl.classList.remove('hidden');
+            if (outstanding > 0) { infoEl.className = "text-xs mt-1 font-semibold text-orange-600"; infoEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> Sisa ${outstanding} L di PO ini`; } 
+            else if (outstanding === 0) { infoEl.className = "text-xs mt-1 font-semibold text-green-600"; infoEl.innerHTML = `<i class="fas fa-check-circle"></i> Lengkap (Selesai)`; } 
+            else { infoEl.className = "text-xs mt-1 font-semibold text-red-600"; infoEl.innerHTML = `<i class="fas fa-times-circle"></i> Kelebihan: ${Math.abs(outstanding)} L!`; }
+        }
+
+        function openSyncModal() {
+            document.getElementById('sync-modal').classList.remove('hidden');
+        }
+
+        function closeSyncModal() {
+            document.getElementById('sync-modal').classList.add('hidden');
+        }
+
+        async function executeSync() {
+            closeSyncModal();
+            if (!GOOGLE_SHEETS_WEBHOOK) {
+                return showToast("Webhook URL Google Sheets belum disetting di koding.", "error");
+            }
+            if (!auth.currentUser || !txCollection) {
+                return showToast("Menunggu koneksi cloud...", "error");
+            }
+
+            showToast("Menghubungkan ke Google Sheets...", "success");
+            
+            let sheetData = null;
+            let fetchedViaCSV = false;
+
+            try {
+                const response = await fetch(GOOGLE_SHEETS_WEBHOOK);
+                if (response.ok) {
+                    sheetData = await response.json();
+                } else {
+                    throw new Error("HTTP error " + response.status);
+                }
+            } catch (err) {
+                console.warn("Gagal fetch Webhook Apps Script (CORS). Mencoba alternatif direct CSV...", err);
+                
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID_FALLBACK}/export?format=csv&gid=${SHEET_GID_FALLBACK}`;
+                
+                try {
+                    const csvResponse = await fetch(csvUrl);
+                    if (!csvResponse.ok) {
+                        throw new Error("Gagal mengunduh CSV. Pastikan Spreadsheet diset 'Siapa saja yang memiliki link dapat melihat'.");
+                    }
+                    const csvText = await csvResponse.text();
+                    const parsedLines = parseCSV(csvText);
+                    
+                    sheetData = [];
+                    for (let i = 1; i < parsedLines.length; i++) {
+                        const row = parsedLines[i];
+                        if (row.length < 5 || !row[0] || !row[4]) continue; 
+                        
+                        let cleanDate = row[0];
+                        try {
+                            const d = new Date(row[0]);
+                            if (!isNaN(d.getTime())) {
+                                const year = d.getFullYear();
+                                const month = String(d.getMonth() + 1).padStart(2, '0');
+                                const day = String(d.getDate()).padStart(2, '0');
+                                cleanDate = `${year}-${month}-${day}`;
+                            } else {
+                                cleanDate = row[0].split(' ')[0];
+                            }
+                        } catch(e) {}
+
+                        let rawQty = row[4] || "0";
+                        if (typeof rawQty === 'string') {
+                            if (rawQty.includes(',') && !rawQty.includes('.')) rawQty = rawQty.replace(',', '.');
+                            else if (rawQty.includes(',') && rawQty.includes('.')) {
+                                const lastComma = rawQty.lastIndexOf(',');
+                                const lastDot = rawQty.lastIndexOf('.');
+                                if (lastComma > lastDot) rawQty = rawQty.replace(/\./g, '').replace(',', '.');
+                                else rawQty = rawQty.replace(/,/g, '');
+                            }
+                        }
+                        const qtyVal = parseFloat(rawQty) || 0;
+
+                        const trxId = "GSYNC_" + new Date(row[0]).getTime() + "_" + i;
+
+                        sheetData.push({
+                            id: trxId,
+                            date: cleanDate,
+                            operator: row[1] || "",
+                            shift: row[2] || "SHIFT 1",
+                            unit: row[3] || "-",
+                            qty: qtyVal,
+                            fotoUrl: row[5] || "",
+                            lokasi: "SJA SUKODONO", 
+                            notes: row[6] || "Sync dari Google Sheets",
+                            bulanSheet: row[7] ? row[7].trim() : ''
+                        });
+                    }
+                    fetchedViaCSV = true;
+                } catch (csvErr) {
+                    console.error("Semua metode sinkronisasi gagal:", csvErr);
+                    showModalInfo(
+                        "Gagal Sinkronisasi", 
+                        `Aplikasi gagal menarik data dari Google Sheets Anda.<br><br>` +
+                        `<b>Cara Mengatasinya:</b><br>` +
+                        `1. Pastikan file Google Sheet Anda telah diset ke: <b>"Siapa saja yang memiliki link dapat melihat" (Anyone with link can view)</b>.<br>` +
+                        `<span class="text-xs text-red-500 font-mono">Detail Error: ${csvErr.message || err.message}</span>`,
+                        true
+                    );
+                    return;
+                }
+            }
+
+            if (!sheetData || sheetData.length === 0) {
+                return showToast("Tidak ada data baru di Google Sheets.", "success");
+            }
+
+            try {
+                showToast("Menyinkronkan data massal (Mode Timpa Data Super Cepat)...", "success");
+                
+                let commitPromises = [];
+                let batch = writeBatch(db);
+                let operationCount = 0;
+
+                const commitAndResetBatch = () => {
+                    commitPromises.push(batch.commit());
+                    batch = writeBatch(db);
+                    operationCount = 0;
+                };
+
+                const outTxs = transactions.filter(t => t.type === 'OUT');
+                for (const trx of outTxs) {
+                    batch.delete(doc(db, 'artifacts', appId, 'public', 'data', 'solar_transactions', trx.id));
+                    operationCount++;
+                    if (operationCount >= 450) commitAndResetBatch(); 
+                }
+
+                let addedCount = 0;
+                for (const item of sheetData) {
+                    if (!item.date || !item.qty) continue; 
+                    
+                    const docRef = doc(txCollection, item.id.toString()); 
+                    batch.set(docRef, {
+                        type: 'OUT',
+                        date: item.date,
+                        lokasi: item.lokasi || "SJA SUKODONO",
+                        operator: item.operator || "-",
+                        unit: item.unit || "-",
+                        shift: item.shift || "SHIFT 1",
+                        qty: item.qty,
+                        fotoUrl: item.fotoUrl || "",
+                        notes: item.notes || "Sync Excel",
+                        bulanSheet: item.bulanSheet || "",
+                        timestamp: Date.now()
+                    });
+                    addedCount++;
+                    operationCount++;
+                    if (operationCount >= 450) commitAndResetBatch();
+                }
+                
+                if (operationCount > 0) {
+                    commitPromises.push(batch.commit());
+                }
+
+                await Promise.all(commitPromises);
+                
+                showToast("Sinkronisasi sukses! Data sudah disamakan persis dengan G-Sheet.", "success");
+            } catch (saveErr) {
+                console.error("Gagal menyimpan hasil sync ke Firebase:", saveErr);
+                showToast("Gagal menyimpan data hasil sinkronisasi.", "error");
+            }
+        }
+
+        function parseCSV(text) {
+            let lines = [], row = [""], inQuotes = false;
+            for (let i = 0; i < text.length; i++) {
+                let c = text[i], next = text[i+1];
+                if (c === '"') { if (inQuotes && next === '"') { row[row.length - 1] += '"'; i++; } else inQuotes = !inQuotes; } 
+                else if (c === ',' && !inQuotes) row.push('');
+                else if ((c === '\r' || c === '\n') && !inQuotes) { if (c === '\r' && next === '\n') i++; lines.push(row); row = ['']; } 
+                else row[row.length - 1] += c;
+            }
+            if (row.length > 1 || row[0] !== '') lines.push(row);
+            return lines;
+        }
+
+        function getFilteredTransactions() {
+            const selected = document.getElementById('dashboard-filter-lokasi')?.value || 'ALL';
+            return selected === 'ALL' ? transactions : transactions.filter(trx => trx.lokasi === selected);
+        }
+
+        function getStockBalanceFiltered(txData) {
+            const balanceMap = {};
+            ["SJA SEPANJANG", "SJA SEMARANG", "SJA SUKODONO", "SJA KARAWANG"].forEach(loc => balanceMap[loc] = { lokasi: loc, initialBalance: INITIAL_BALANCES[loc] || 0, totalIn: 0, totalOut: 0, currentBalance: INITIAL_BALANCES[loc] || 0 });
+            txData.forEach(trx => {
+                if(trx.type === 'PO') return; 
+                const loc = trx.lokasi || '-';
+                if (!balanceMap[loc]) balanceMap[loc] = { lokasi: loc, initialBalance: 0, totalIn: 0, totalOut: 0, currentBalance: 0 };
+                const qty = parseFloat(trx.qty) || 0;
+                if (trx.type === 'IN') balanceMap[loc].totalIn += qty; else if (trx.type === 'OUT') balanceMap[loc].totalOut += qty;
+                balanceMap[loc].currentBalance = balanceMap[loc].initialBalance + balanceMap[loc].totalIn - balanceMap[loc].totalOut;
+            });
+            return Object.values(balanceMap);
+        }
+
+        function renderDashboard() {
+            const filteredData = getFilteredTransactions();
+            const balances = getStockBalanceFiltered(transactions);
+            const selectedLocation = document.getElementById('dashboard-filter-lokasi').value;
+            let totalIn = 0, totalOut = 0, totalCurrent = 0; allFilteredBalances = [];
+            
+            balances.forEach(b => {
+                if (b.initialBalance === 0 && b.totalIn === 0 && b.totalOut === 0) return;
+                if (selectedLocation === 'ALL' || b.lokasi === selectedLocation) { totalIn += b.totalIn; totalOut += b.totalOut; totalCurrent += b.currentBalance; allFilteredBalances.push(b); }
+            });
+
+            const formatNum = (num) => num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+            document.getElementById('total-in').textContent = formatNum(totalIn); document.getElementById('total-out').textContent = formatNum(totalOut);
+            const balanceEl = document.getElementById('total-balance'); balanceEl.textContent = formatNum(totalCurrent);
+            balanceEl.className = `text-3xl font-bold ${totalCurrent < 100 && totalCurrent > 0 ? 'text-orange-500' : 'text-slate-800'}`;
+            
+            currentBalancePage = 1; renderBalanceTablePage(); preparePOData(filteredData); prepareDashInboundData(filteredData); prepareOutboundData(filteredData);
+        }
+
+        function renderBalanceTablePage() {
+            const tableBody = document.getElementById('batch-balance-table'), emptyMsg = document.getElementById('empty-dashboard-msg'), paginationControls = document.getElementById('balance-pagination-controls');
+            tableBody.innerHTML = '';
+            if (allFilteredBalances.length === 0) { emptyMsg.classList.remove('hidden'); paginationControls.classList.add('hidden'); } else {
+                emptyMsg.classList.add('hidden'); paginationControls.classList[allFilteredBalances.length > ITEMS_PER_PAGE_BALANCE ? 'remove' : 'add']('hidden');
+                const start = (currentBalancePage - 1) * ITEMS_PER_PAGE_BALANCE;
+                allFilteredBalances.slice(start, start + ITEMS_PER_PAGE_BALANCE).forEach(b => {
+                    const badgeClass = b.currentBalance <= 100 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700 font-bold';
+                    const formatNum = (num) => num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+                    tableBody.insertAdjacentHTML('beforeend', `<tr class="hover:bg-slate-50 transition-colors"><td class="p-4"><span class="bg-slate-100 text-slate-800 px-2 py-1 rounded text-xs font-bold">${b.lokasi}</span></td><td class="p-4 text-slate-600 font-medium">${formatNum(b.initialBalance)} L</td><td class="p-4 text-blue-600 font-medium">+${formatNum(b.totalIn)} L</td><td class="p-4 text-red-600 font-medium">-${formatNum(b.totalOut)} L</td><td class="p-4"><span class="px-3 py-1 rounded-full text-xs ${badgeClass}">${formatNum(b.currentBalance)} Liter</span></td></tr>`);
+                });
+                updatePaginationUI('balance');
+            }
+        }
+        function changeBalancePage(d) { currentBalancePage = Math.max(1, Math.min(currentBalancePage + d, Math.ceil(allFilteredBalances.length / ITEMS_PER_PAGE_BALANCE))); renderBalanceTablePage(); }
+
+        function preparePOData(filteredData) {
+            const poStatus = {};
+            filteredData.forEach(trx => { if (trx.type === 'PO') poStatus[trx.poNumber] = { po: trx.poNumber, supplier: trx.supplier, poQty: trx.poQty, received: 0, lokasi: trx.lokasi, datePO: trx.date, lastDateInbound: null, lastTimestamp: trx.timestamp || 0 }; });
+            filteredData.forEach(trx => {
+                if (trx.type === 'IN' && trx.po) {
+                    if (!poStatus[trx.po]) poStatus[trx.po] = { po: trx.po, supplier: trx.supplier, poQty: trx.poQty || 0, received: 0, lokasi: trx.lokasi, datePO: trx.date, lastDateInbound: trx.date, lastTimestamp: trx.timestamp || 0 };
+                    poStatus[trx.po].received += trx.qty;
+                    if (!transactions.find(t=> t.type==='PO' && t.poNumber===trx.po) && trx.poQty > poStatus[trx.po].poQty) poStatus[trx.po].poQty = trx.poQty;
+                    const tStamp = trx.timestamp || 0; if (tStamp > poStatus[trx.po].lastTimestamp) { poStatus[trx.po].lastDateInbound = trx.date; poStatus[trx.po].lastTimestamp = tStamp; }
+                }
+            });
+            allFilteredPOs = Object.values(poStatus).sort((a, b) => { const aOut = a.poQty - a.received, bOut = b.poQty - b.received; if (aOut > 0 && bOut <= 0) return -1; if (aOut <= 0 && bOut > 0) return 1; return b.lastTimestamp - a.lastTimestamp; });
+            currentPOPage = 1; renderPOTablePage();
+        }
+
+        function renderPOTablePage() {
+            const tb = document.getElementById('outstanding-po-table'), empty = document.getElementById('empty-outstanding-msg'), pg = document.getElementById('po-pagination-controls'), alertBox = document.getElementById('open-po-alert'), alertTitle = document.getElementById('open-po-alert-title'), alertList = document.getElementById('open-po-alert-list');
+            tb.innerHTML = ''; if(alertList) alertList.innerHTML = '';
+            if (allFilteredPOs.length === 0) { empty.classList.remove('hidden'); pg.classList.add('hidden'); if(alertBox) alertBox.classList.add('hidden'); } else {
+                empty.classList.add('hidden');
+                const openPOs = allFilteredPOs.filter(p => (p.poQty - p.received) > 0);
+                if (openPOs.length > 0 && alertBox) {
+                    alertBox.classList.remove('hidden'); alertTitle.innerHTML = `Perhatian: Terdapat ${openPOs.length} PO yang masih berstatus OPEN.`;
+                    openPOs.forEach(p => alertList.insertAdjacentHTML('beforeend', `<li><strong>${p.po}</strong> di lokasi <span class="font-semibold">${p.lokasi || '-'}</span> (Kurang ${p.poQty - p.received} L)</li>`));
+                } else if(alertBox) alertBox.classList.add('hidden');
+
+                pg.classList[allFilteredPOs.length > ITEMS_PER_PAGE_PO ? 'remove' : 'add']('hidden');
+                const start = (currentPOPage - 1) * ITEMS_PER_PAGE_PO;
+                allFilteredPOs.slice(start, start + ITEMS_PER_PAGE_PO).forEach(p => {
+                    const out = p.poQty - p.received, badge = out > 0 ? '<span class="px-3 py-1 rounded-full text-xs bg-orange-100 text-orange-700 font-bold">Open</span>' : (out === 0 ? '<span class="px-3 py-1 rounded-full text-xs bg-emerald-100 text-emerald-700 font-bold">Closed</span>' : '<span class="px-3 py-1 rounded-full text-xs bg-red-100 text-red-700 font-bold">Over</span>');
+                    const txt = out > 0 ? `<span class="text-orange-600 font-bold">${out} Liter</span>` : (out === 0 ? `<span class="text-emerald-600 font-bold">0</span>` : `<span class="text-red-600 font-bold">Lebih ${Math.abs(out)}</span>`);
+                    const oTx = transactions.find(t => t.type === 'PO' && t.poNumber === p.po), pId = oTx ? oTx.id : '';
+                    let act = ''; if (currentUser && currentUser.role === 'admin') { act = pId ? `<td class="p-4 text-center"><button onclick="openEditModal('${pId}')" class="text-blue-500 hover:bg-blue-100 p-2 rounded-lg transition mr-1"><i class="fas fa-edit"></i></button><button onclick="confirmDelete('${pId}')" class="text-red-500 hover:bg-red-100 p-2 rounded-lg transition"><i class="fas fa-trash-alt"></i></button></td>` : `<td class="p-4 text-center text-xs text-slate-400 italic">Data Inbound<br>(Tanpa PO)</td>`; }
+                    tb.insertAdjacentHTML('beforeend', `<tr class="hover:bg-slate-50 transition-colors"><td class="p-4 text-slate-600">${formatDate(p.datePO || p.lastDateInbound)}</td><td class="p-4 font-medium text-slate-800 font-mono">${p.po}</td><td class="p-4 text-slate-600">${p.supplier}</td><td class="p-4"><span class="bg-slate-100 text-slate-800 px-2 py-1 rounded text-xs font-bold">${p.lokasi || '-'}</span></td><td class="p-4 text-center font-semibold bg-slate-50">${p.poQty}</td><td class="p-4 text-center text-blue-600 font-bold bg-blue-50/30">${p.received}</td><td class="p-4 text-center">${txt}</td><td class="p-4 text-center">${badge}</td>${act}</tr>`);
+                });
+                updatePaginationUI('po');
+            }
+        }
+        function changePOPage(d) { currentPOPage = Math.max(1, Math.min(currentPOPage + d, Math.ceil(allFilteredPOs.length / ITEMS_PER_PAGE_PO))); renderPOTablePage(); }
+
+        function prepareDashInboundData(data) { 
+            // Sort by Date Descending, then Timestamp Descending
+            allFilteredDashInbounds = data.filter(t => t.type === 'IN').sort((a, b) => {
+                const dateA = a.date || "";
+                const dateB = b.date || "";
+                if (dateA !== dateB) return dateB.localeCompare(dateA); 
+                return (b.timestamp || 0) - (a.timestamp || 0);
+            }); 
+            currentDashInboundPage = 1; 
+            renderDashInboundTablePage(); 
+        }
+
+        function renderDashInboundTablePage() {
+            const tb = document.getElementById('dashboard-recent-inbound-table'), empty = document.getElementById('empty-recent-inbound-msg'), pg = document.getElementById('dash-inbound-pagination-controls');
+            tb.innerHTML = '';
+            if (allFilteredDashInbounds.length === 0) { empty.classList.remove('hidden'); pg.classList.add('hidden'); } else {
+                empty.classList.add('hidden'); pg.classList[allFilteredDashInbounds.length > ITEMS_PER_PAGE_DASH ? 'remove' : 'add']('hidden');
+                const start = (currentDashInboundPage - 1) * ITEMS_PER_PAGE_DASH;
+                allFilteredDashInbounds.slice(start, start + ITEMS_PER_PAGE_DASH).forEach(trx => {
+                    const po = trx.po ? `<br><span class="text-xs text-indigo-600 font-bold border border-indigo-200 bg-indigo-50 px-1 rounded inline-block mt-1">PO: ${trx.po}</span>` : '';
+                    const act = (currentUser && currentUser.role === 'admin') ? `<td class="p-4 text-center"><button onclick="openEditModal('${trx.id}')" class="text-blue-500 hover:bg-blue-100 p-2 rounded-lg transition mr-1"><i class="fas fa-edit"></i></button><button onclick="confirmDelete('${trx.id}')" class="text-red-500 hover:bg-red-100 p-2 rounded-lg transition"><i class="fas fa-trash-alt"></i></button></td>` : '';
+                    tb.insertAdjacentHTML('beforeend', `<tr class="hover:bg-slate-50 transition-colors"><td class="p-4 text-slate-600">${formatDate(trx.date)}</td><td class="p-4"><span class="bg-slate-100 text-slate-800 px-2 py-1 rounded text-xs font-bold">${trx.lokasi || '-'}</span></td><td class="p-4 text-slate-800">${trx.supplier || '-'}${po}</td><td class="p-4 text-right font-bold text-blue-600">+${trx.qty} L</td><td class="p-4 text-slate-500 truncate max-w-[150px]" title="${trx.notes}">${trx.notes || '-'}</td>${act}</tr>`);
+                });
+                updatePaginationUI('dash-inbound');
+            }
+        }
+        function changeDashInboundPage(d) { currentDashInboundPage = Math.max(1, Math.min(currentDashInboundPage + d, Math.ceil(allFilteredDashInbounds.length / ITEMS_PER_PAGE_DASH))); renderDashInboundTablePage(); }
+
+        function applyDashOutboundFilter() {
+            const filteredData = getFilteredTransactions();
+            prepareOutboundData(filteredData);
+        }
+
+        function prepareOutboundData(data) { 
+            // Sort by Date Descending, then Timestamp Descending
+            let outs = data.filter(t => t.type === 'OUT').sort((a, b) => {
+                const dateA = a.date || "";
+                const dateB = b.date || "";
+                if (dateA !== dateB) return dateB.localeCompare(dateA); 
+                return (b.timestamp || 0) - (a.timestamp || 0);
+            }); 
+            
+            const dateFilter = (document.getElementById('filter-dash-out-date')?.value || '').toLowerCase();
+            const lokasiFilter = (document.getElementById('filter-dash-out-lokasi')?.value || '').toLowerCase();
+            const operatorFilter = (document.getElementById('filter-dash-out-operator')?.value || '').toLowerCase();
+            const unitFilter = (document.getElementById('filter-dash-out-unit')?.value || '').toLowerCase();
+            const shiftFilter = (document.getElementById('filter-dash-out-shift')?.value || '').toLowerCase();
+            const notesFilter = (document.getElementById('filter-dash-out-notes')?.value || '').toLowerCase();
+
+            if (dateFilter || lokasiFilter || operatorFilter || unitFilter || shiftFilter || notesFilter) {
+                outs = outs.filter(trx => {
+                    const tdDate = formatDate(trx.date).toLowerCase();
+                    const tdLokasi = (trx.lokasi || '').toLowerCase();
+                    const tdOperator = (trx.operator || '').toLowerCase();
+                    const tdUnit = (trx.unit || '').toLowerCase();
+                    const tdShift = (trx.shift || '').toLowerCase();
+                    const tdNotes = (trx.notes || '').toLowerCase();
+
+                    return tdDate.includes(dateFilter) &&
+                           tdLokasi.includes(lokasiFilter) &&
+                           tdOperator.includes(operatorFilter) &&
+                           tdUnit.includes(unitFilter) &&
+                           tdShift.includes(shiftFilter) &&
+                           tdNotes.includes(notesFilter);
+                });
+            }
+
+            allFilteredOutbounds = outs;
+            currentOutboundPage = 1; 
+            renderOutboundTablePage(); 
+        }
+        
+        function renderOutboundTablePage() {
+            const tb = document.getElementById('dashboard-recent-outbound-table'), empty = document.getElementById('empty-recent-outbound-msg'), pg = document.getElementById('outbound-pagination-controls');
+            tb.innerHTML = '';
+            if (allFilteredOutbounds.length === 0) { empty.classList.remove('hidden'); pg.classList.add('hidden'); } else {
+                empty.classList.add('hidden'); pg.classList[allFilteredOutbounds.length > ITEMS_PER_PAGE_DASH ? 'remove' : 'add']('hidden');
+                const start = (currentOutboundPage - 1) * ITEMS_PER_PAGE_DASH;
+                allFilteredOutbounds.slice(start, start + ITEMS_PER_PAGE_DASH).forEach(trx => {
+                    const foto = trx.fotoUrl && trx.fotoUrl.startsWith('http') ? `<a href="${trx.fotoUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 bg-blue-50 px-2 py-1 rounded transition"><i class="fas fa-image"></i> Cek</a>` : `<span class="text-slate-400 italic text-xs">Kosong</span>`;
+                    const act = (currentUser && currentUser.role === 'admin') ? `<td class="p-4 text-center"><button onclick="openEditModal('${trx.id}')" class="text-blue-500 hover:bg-blue-100 p-2 rounded-lg transition mr-1"><i class="fas fa-edit"></i></button><button onclick="confirmDelete('${trx.id}')" class="text-red-500 hover:bg-red-100 p-2 rounded-lg transition"><i class="fas fa-trash-alt"></i></button></td>` : '';
+                    tb.insertAdjacentHTML('beforeend', `<tr class="hover:bg-slate-50 transition-colors"><td class="p-4 text-slate-600">${formatDate(trx.date)}</td><td class="p-4"><span class="bg-slate-100 text-slate-800 px-2 py-1 rounded text-xs font-bold">${trx.lokasi || '-'}</span></td><td class="p-4 font-medium text-slate-800 uppercase">${trx.operator || '-'}</td><td class="p-4"><span class="bg-gray-200 px-2 py-1 rounded text-xs font-mono">${trx.unit || '-'}</span></td><td class="p-4"><span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs font-bold">${trx.shift || '-'}</span></td><td class="p-4 text-right font-bold text-red-600">-${trx.qty} L</td><td class="p-4 text-center">${foto}</td><td class="p-4 text-slate-500 truncate max-w-[200px]" title="${trx.notes}">${trx.notes || '-'}</td>${act}</tr>`);
+                });
+                updatePaginationUI('outbound');
+            }
+        }
+        function changeOutboundPage(d) { currentOutboundPage = Math.max(1, Math.min(currentOutboundPage + d, Math.ceil(allFilteredOutbounds.length / ITEMS_PER_PAGE_DASH))); renderOutboundTablePage(); }
+
+        function updatePaginationUI(type) {
+            let total, cur, lim;
+            if (type === 'po') { total = allFilteredPOs.length; cur = currentPOPage; lim = ITEMS_PER_PAGE_PO; }
+            else if (type === 'dash-inbound') { total = allFilteredDashInbounds.length; cur = currentDashInboundPage; lim = ITEMS_PER_PAGE_DASH; }
+            else if (type === 'outbound') { total = allFilteredOutbounds.length; cur = currentOutboundPage; lim = ITEMS_PER_PAGE_DASH; }
+            else if (type === 'balance') { total = allFilteredBalances.length; cur = currentBalancePage; lim = ITEMS_PER_PAGE_BALANCE; }
+
+            const totalPg = Math.ceil(total / lim); let start = (cur - 1) * lim + 1, end = Math.min(start + lim - 1, total);
+            if (total === 0) { start = 0; end = 0; }
+            const pInfo = document.getElementById(`${type}-page-info`); if(pInfo) pInfo.textContent = `Menampilkan ${start}-${end} dari ${total} data`;
+            const prev = document.getElementById(`${type}-prev-btn`), next = document.getElementById(`${type}-next-btn`);
+            if(prev) prev.disabled = cur <= 1; if(next) next.disabled = cur >= totalPg || totalPg === 0;
+        }
+
+        function renderInboundTable() {
+            let inbs = transactions.filter(t => t.type === 'IN');
+            if (currentUser && (currentUser.role === 'purchasing' || currentUser.role === 'gudang')) inbs = inbs.filter(t => t.lokasi === currentUser.location);
+            // Sort by Date Descending
+            inbs.sort((a, b) => {
+                const dateA = a.date || "";
+                const dateB = b.date || "";
+                if (dateA !== dateB) return dateB.localeCompare(dateA); 
+                return (b.timestamp || 0) - (a.timestamp || 0);
+            });
+            const tb = document.getElementById('table-inbound-body'), empty = document.getElementById('empty-inbound-msg');
+            tb.innerHTML = '';
+            if (inbs.length === 0) empty.classList.remove('hidden'); else {
+                empty.classList.add('hidden');
+                inbs.forEach(trx => {
+                    const po = trx.po ? `<br><span class="text-xs text-indigo-600 font-bold border border-indigo-200 bg-indigo-50 px-1 rounded inline-block mt-1">PO: ${trx.po}</span>` : '';
+                    const act = (currentUser && currentUser.role === 'admin') ? `<td class="p-4 text-center"><button onclick="openEditModal('${trx.id}')" class="text-blue-500 hover:bg-blue-100 p-2 rounded-lg transition mr-1"><i class="fas fa-edit"></i></button><button onclick="confirmDelete('${trx.id}')" class="text-red-500 hover:bg-red-100 p-2 rounded-lg transition"><i class="fas fa-trash-alt"></i></button></td>` : '';
+                    tb.insertAdjacentHTML('beforeend', `<tr class="hover:bg-slate-50"><td class="p-4">${formatDate(trx.date)}</td><td class="p-4"><span class="bg-slate-100 text-slate-800 px-2 py-1 rounded text-xs font-bold">${trx.lokasi || '-'}</span></td><td class="p-4">${trx.supplier}${po}</td><td class="p-4 text-right font-bold text-blue-600">+${trx.qty} L</td><td class="p-4 text-slate-500 truncate max-w-[150px]" title="${trx.notes}">${trx.notes || '-'}</td>${act}</tr>`);
+                });
+            }
+        }
+
+        function renderOutboundTable() {
+            let outs = transactions.filter(t => t.type === 'OUT');
+            if (currentUser && (currentUser.role === 'purchasing' || currentUser.role === 'gudang')) outs = outs.filter(t => t.lokasi === currentUser.location);
+            // Sort by Date Descending
+            outs.sort((a, b) => {
+                const dateA = a.date || "";
+                const dateB = b.date || "";
+                if (dateA !== dateB) return dateB.localeCompare(dateA); 
+                return (b.timestamp || 0) - (a.timestamp || 0);
+            });
+            const tb = document.getElementById('table-outbound-body'), empty = document.getElementById('empty-outbound-msg');
+            tb.innerHTML = '';
+            if (outs.length === 0) empty.classList.remove('hidden'); else {
+                empty.classList.add('hidden');
+                outs.forEach(trx => {
+                    const foto = trx.fotoUrl && trx.fotoUrl.startsWith('http') ? `<a href="${trx.fotoUrl}" target="_blank" class="text-blue-500 hover:bg-blue-50 px-2 py-1 rounded transition"><i class="fas fa-image"></i> Cek</a>` : `<span class="text-slate-400 italic text-xs">Kosong</span>`;
+                    const act = (currentUser && currentUser.role === 'admin') ? `<td class="p-4 text-center"><button onclick="openEditModal('${trx.id}')" class="text-blue-500 hover:bg-blue-100 p-2 rounded-lg transition mr-1"><i class="fas fa-edit"></i></button><button onclick="confirmDelete('${trx.id}')" class="text-red-500 hover:bg-red-100 p-2 rounded-lg transition"><i class="fas fa-trash-alt"></i></button></td>` : '';
+                    tb.insertAdjacentHTML('beforeend', `<tr class="hover:bg-slate-50"><td class="p-4">${formatDate(trx.date)}</td><td class="p-4"><span class="bg-slate-100 text-slate-800 px-2 py-1 rounded text-xs font-bold">${trx.lokasi || '-'}</span></td><td class="p-4 font-medium text-slate-800 uppercase">${trx.operator || '-'}</td><td class="p-4"><span class="bg-gray-200 px-2 py-1 rounded text-xs font-mono">${trx.unit || '-'}</span></td><td class="p-4"><span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs font-bold">${trx.shift || '-'}</span></td><td class="p-4 text-right font-bold text-red-600">-${trx.qty} L</td><td class="p-4 text-center">${foto}</td><td class="p-4 text-slate-500 truncate max-w-[200px]" title="${trx.notes}">${trx.notes || '-'}</td>${act}</tr>`);
+                });
+            }
+        }
+
+        function renderPOTable() {
+            let pos = transactions.filter(t => t.type === 'PO');
+            if (currentUser && (currentUser.role === 'purchasing' || currentUser.role === 'gudang')) pos = pos.filter(t => t.lokasi === currentUser.location);
+            // Sort by Date Descending
+            pos.sort((a, b) => {
+                const dateA = a.date || "";
+                const dateB = b.date || "";
+                if (dateA !== dateB) return dateB.localeCompare(dateA); 
+                return (b.timestamp || 0) - (a.timestamp || 0);
+            });
+            const tbody = document.getElementById('table-po-body'), emptyMsg = document.getElementById('empty-po-msg');
+            tbody.innerHTML = '';
+            if (pos.length === 0) emptyMsg.classList.remove('hidden'); else {
+                emptyMsg.classList.add('hidden');
+                pos.forEach(trx => {
+                    const actionHtml = (currentUser && currentUser.role === 'admin') ? `<td class="p-4 text-center"><button onclick="openEditModal('${trx.id}')" class="text-blue-500 hover:bg-blue-100 p-2 rounded-lg transition mr-1"><i class="fas fa-edit"></i></button><button onclick="confirmDelete('${trx.id}')" class="text-red-500 hover:bg-red-100 p-2 rounded-lg transition"><i class="fas fa-trash-alt"></i></button></td>` : '';
+                    tbody.insertAdjacentHTML('beforeend', `<tr class="hover:bg-slate-50"><td class="p-4">${formatDate(trx.date)}</td><td class="p-4"><span class="bg-slate-100 text-slate-800 px-2 py-1 rounded text-xs font-bold">${trx.lokasi || '-'}</span></td><td class="p-4 font-mono font-medium text-indigo-700">${trx.poNumber}</td><td class="p-4">${trx.supplier}</td><td class="p-4 text-center font-bold text-slate-800">${trx.poQty}</td>${actionHtml}</tr>`);
+                });
+            }
+        }
+
+        function updateCloudStatus(status) {
+            const desktop = document.getElementById('cloud-status');
+            const mobile = document.getElementById('mobile-cloud-status');
+            if(status === 'connected') {
+                if(desktop) desktop.innerHTML = '<i class="fas fa-cloud text-emerald-400"></i> <span class="text-emerald-400 font-medium">Cloud Aktif</span>';
+                if(mobile) mobile.className = 'fas fa-cloud text-emerald-400 text-xs ml-1';
+            } else if (status === 'error') {
+                if(desktop) desktop.innerHTML = '<i class="fas fa-cloud-showers-heavy text-red-400"></i> <span class="text-red-400 font-medium">Cloud Terputus</span>';
+                if(mobile) mobile.className = 'fas fa-cloud-showers-heavy text-red-400 text-xs ml-1';
+            }
+        }
+
+        function formatDate(dateStr) { if(!dateStr) return '-'; const p = dateStr.split('-'); if(p.length !== 3) return dateStr; return `${p[2]}/${p[1]}/${p[0]}`; }
+        
+        function showToast(msg, type = 'success') {
+            const cont = document.getElementById('toast-container'); if(!cont) return;
+            const t = document.createElement('div'), bg = type === 'success' ? 'bg-emerald-600' : 'bg-red-600', icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle';
+            t.className = `${bg} text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 transform transition-all duration-300 translate-x-full opacity-0`;
+            t.innerHTML = `<i class="fas ${icon}"></i><span class="font-medium text-sm">${msg}</span>`;
+            cont.appendChild(t); setTimeout(() => t.classList.remove('translate-x-full', 'opacity-0'), 10);
+            setTimeout(() => { t.classList.add('translate-x-full', 'opacity-0'); setTimeout(() => t.remove(), 300); }, 3000);
+        }
+
+        function backupData() {
+            if (transactions.length === 0) return showToast("Tidak ada data.", "error");
+            
+            const dataToBackup = transactions.filter(trx => {
+                if (trx.type === 'PO' || trx.type === 'IN') return true;
+                if (trx.type === 'OUT') {
+                    return !trx.id.toString().startsWith('GSYNC_');
+                }
+                return false;
+            });
+
+            if (dataToBackup.length === 0) return showToast("Tidak ada data manual untuk dibackup.", "error");
+
+            const blob = new Blob([JSON.stringify(dataToBackup, null, 2)], { type: "application/json" });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); 
+            a.download = `Backup_Solar_Manual_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href); 
+            showToast(`Backup ${dataToBackup.length} data diunduh.`, "success");
+        }
+
+        function restoreData(e) {
+            const file = e.target.files[0]; if (!file || !txCollection) return showToast("Gagal", "error");
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                try {
+                    const data = JSON.parse(ev.target.result); if (!Array.isArray(data)) throw new Error();
+                    showToast("Restore berjalan...", "success"); let count = 0;
+                    for (const item of data) {
+                        if (!transactions.find(t => t.id === item.id)) {
+                            const { id, ...save } = item; await setDoc(doc(txCollection, item.id || Date.now().toString()), save); count++;
+                        }
+                    }
+                    showToast(`Selesai. ${count} data baru.`, "success"); e.target.value = '';
+                } catch (err) { showToast("Gagal memproses file.", "error"); }
+            }; reader.readAsText(file);
+        }
+
+        function showModalInfo(title, msg, isError = true) {
+            document.getElementById('info-modal-title').textContent = title; document.getElementById('info-modal-message').innerHTML = msg;
+            document.getElementById('info-modal-icon-container').className = `w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${isError ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`;
+            document.getElementById('info-modal-icon').className = `text-2xl ${isError ? 'fas fa-exclamation-circle' : 'fas fa-info-circle'}`;
+            document.getElementById('info-modal').classList.remove('hidden');
+        }
+        function closeInfoModal() { document.getElementById('info-modal').classList.add('hidden'); }
+        function confirmResetAll() { document.getElementById('reset-confirm-modal').classList.remove('hidden'); }
+        function closeResetConfirmModal() { document.getElementById('reset-confirm-modal').classList.add('hidden'); }
+        async function executeResetAll() {
+            if (!txCollection || !auth.currentUser) return;
+            if (transactions.length === 0) { closeResetConfirmModal(); return showToast("Data kosong.", "success"); }
+            showToast("Menghapus...", "success");
+            try { await Promise.all(transactions.map(trx => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'solar_transactions', trx.id)))); showToast("Di-reset.", "success"); } 
+            catch (err) { showToast("Gagal reset.", "error"); } finally { closeResetConfirmModal(); }
+        }
+
+        window.navigate = navigate; window.handlePOSubmit = handlePOSubmit; window.handleInboundSubmit = handleInboundSubmit;
+        window.handleOutboundSubmit = handleOutboundSubmit; window.handleInboundPOChange = handleInboundPOChange;
+        window.updateInboundPODropdown = updateInboundPODropdown; window.calculateOutstanding = calculateOutstanding;
+        window.updateUI = updateUI; window.backupData = backupData; window.restoreData = restoreData;
+        window.filterOutboundTable = filterOutboundTable;
+        window.renderActiveChart = renderActiveChart;
+        window.renderPergerakanChart = renderPergerakanChart;
+        window.renderParetoDeviceChart = renderParetoDeviceChart;
+        window.openSyncModal = openSyncModal;
+        window.closeSyncModal = closeSyncModal;
+        window.executeSync = executeSync;
+        window.closeInfoModal = closeInfoModal;
+        window.showModalInfo = showModalInfo;
+        window.toggleLoginModal = toggleLoginModal;
+        window.handleLogin = handleLogin;
+        window.logoutUser = logoutUser;
+        window.confirmDelete = confirmDelete;
+        window.closeConfirmModal = closeConfirmModal;
+        window.executeDelete = executeDelete;
+        window.confirmResetAll = confirmResetAll;
+        window.closeResetConfirmModal = closeResetConfirmModal;
+        window.executeResetAll = executeResetAll;
+        window.openEditModal = openEditModal;
+        window.closeEditModal = closeEditModal;
+        window.handleEditSubmit = handleEditSubmit;
+        window.changeBalancePage = changeBalancePage;
+        window.changePOPage = changePOPage;
+        window.changeDashInboundPage = changeDashInboundPage;
+        window.changeOutboundPage = changeOutboundPage;
+        window.filterInboundTable = filterInboundTable;
+        window.applyDashOutboundFilter = applyDashOutboundFilter;
+        window.renderInboundTable = renderInboundTable;
+        window.renderOutboundTable = renderOutboundTable;
+
+    </script>
+</body>
+</html>
