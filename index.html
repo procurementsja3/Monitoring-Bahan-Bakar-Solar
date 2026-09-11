@@ -1551,7 +1551,7 @@
             let totalIn = 0, totalOut = 0, totalCurrent = 0; allFilteredBalances = [];
             
             balances.forEach(b => {
-                if (b.initialBalance === 0 && b.totalIn === 0 && b.totalOut === 0) return;
+                if (b.initialBalance === 0 && b.totalIn === 0 && b.totalOut === 0) { if (b.lokasi === "SJA SUKODONO") { } else { return; } }
                 if (selectedLocation === 'ALL' || b.lokasi === selectedLocation) { totalIn += b.totalIn; totalOut += b.totalOut; totalCurrent += b.currentBalance; allFilteredBalances.push(b); }
             });
 
